@@ -3,7 +3,7 @@ import MDEditor from '@uiw/react-md-editor';
 import { Input } from '@/components/ui/input';
 import { useNotes, type Note } from '@/hooks/useNotes';
 import { useTheme } from '@/hooks/useTheme';
-import { Menu, Save, FileText, Sparkles } from 'lucide-react';
+import { Menu, Save, FileText, Sparkles, Edit3, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import debounce from '@/lib/debounce';
@@ -22,6 +22,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
+  const [mobileView, setMobileView] = useState<'preview' | 'editor'>('preview'); // Mobile: preview first
 
   const note = notes.find(n => n.id === noteId);
 
@@ -110,7 +111,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
 
   return (
     <div className="flex-1 flex flex-col bg-background overflow-hidden animate-fade-in">
-      {/* Header */}
+      {/* Header with mobile toggle buttons */}
       <div className="flex items-center gap-3 p-4 border-b border-border shrink-0">
         <Button
           variant="ghost"
@@ -120,6 +121,29 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
+
+        {/* Mobile View Toggle Buttons */}
+        <div className="md:hidden flex gap-2 shrink-0">
+          <Button
+            variant={mobileView === 'preview' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setMobileView('preview')}
+            className="h-8"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Preview
+          </Button>
+          <Button
+            variant={mobileView === 'editor' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setMobileView('editor')}
+            className="h-8"
+          >
+            <Edit3 className="h-4 w-4 mr-1" />
+            Edit
+          </Button>
+        </div>
+
         <Input
           value={title}
           onChange={(e) => handleTitleChange(e.target.value)}
@@ -140,14 +164,14 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
         <MDEditor
           value={content}
           onChange={handleContentChange}
-          preview="live"
+          preview={mobileView === 'preview' ? 'preview' : (mobileView === 'editor' ? 'edit' : 'live')}
           height="100%"
-          visibleDragbar={true}
+          visibleDragbar={false}
           hideToolbar={false}
           className="!border-0"
         />
 
-        {/* Floating AI Format Button - positioned on left side (editor panel) */}
+        {/* Floating AI Format Button - only show in editor mode on mobile, always on desktop */}
         <Button
           onClick={handleAIFormat}
           disabled={isFormatting || !content.trim()}
@@ -156,7 +180,10 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
             "text-white shadow-lg hover:shadow-xl",
             "transition-all duration-200",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            // Hide on mobile when in preview mode
+            "md:flex",
+            mobileView === 'preview' ? "hidden" : "flex"
           )}
           size="lg"
           title="Format with AI"
