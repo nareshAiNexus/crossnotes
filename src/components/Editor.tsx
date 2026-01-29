@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import { Input } from '@/components/ui/input';
 import { useNotes, type Note } from '@/hooks/useNotes';
+import { useTheme } from '@/hooks/useTheme';
 import { Menu, Save, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,6 +15,7 @@ interface EditorProps {
 
 export default function Editor({ noteId, onMenuClick }: EditorProps) {
   const { notes, updateNote } = useNotes();
+  const { theme } = useTheme();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -102,13 +104,13 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
       </div>
 
       {/* Editor */}
-      <div className="flex-1 overflow-hidden editor-equal-height" data-color-mode="dark">
+      <div className="flex-1 overflow-hidden editor-equal-height" data-color-mode={theme}>
         <MDEditor
           value={content}
           onChange={handleContentChange}
           preview="live"
           height="100%"
-          visibleDragbar={false}
+          visibleDragbar={true}
           hideToolbar={false}
           className="!border-0"
         />

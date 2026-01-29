@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useNotes, type Note, type Folder as FolderType } from '@/hooks/useNotes';
 import { useAuth } from '@/hooks/useAuth';
+import ThemeToggle from '@/components/ThemeToggle';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -134,14 +135,17 @@ export default function Sidebar({ selectedNoteId, onSelectNote, isMobileOpen, on
             </div>
             <span className="font-semibold text-sidebar-foreground">CrossNotes</span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden text-sidebar-foreground"
-            onClick={onMobileClose}
-          >
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-sidebar-foreground"
+              onClick={onMobileClose}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2 truncate">
           {user?.email}
