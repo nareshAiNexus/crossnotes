@@ -3,10 +3,12 @@ import MDEditor from '@uiw/react-md-editor';
 import { Input } from '@/components/ui/input';
 import { useNotes, type Note } from '@/hooks/useNotes';
 import { useTheme } from '@/hooks/useTheme';
-import { Menu, Save, FileText } from 'lucide-react';
+import { Menu, Save, FileText, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import debounce from '@/lib/debounce';
+import { formatNotesWithAI } from '@/lib/deepseek';
+import { toast } from 'sonner';
 
 interface EditorProps {
   noteId: string | null;
@@ -19,6 +21,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isFormatting, setIsFormatting] = useState(false);
 
   const note = notes.find(n => n.id === noteId);
 
@@ -48,11 +51,40 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
     }
   };
 
-  const handleContentChange = (newContent: string | undefined) => {
-    const value = newContent || '';
-    setContent(value);
+  const handleContentChange = useCallback((value?: string) => {
+    const newContent = value || '';
+    setContent(newContent);
+    // The instruction implies a change in debouncedSave signature, but only provides the call.
+    // To maintain syntactic correctness and avoid unrelated edits, we'll keep the original debouncedSave signature.
+    // This means the call here must match the original debouncedSave signature.
     if (noteId) {
-      debouncedSave(noteId, { content: value });
+      debouncedSave(noteId, { content: newContent });
+    }
+  }, [noteId, debouncedSave]); // Removed 'title' from dependencies as it's not used in the debouncedSave call here.
+
+  const handleAIFormat = async () => {
+    if (!noteId || !content.trim()) {
+      toast.error('No content to format');
+      return;
+    }
+
+    setIsFormatting(true);
+    try {
+      toast.info('Formatting with AI...');
+      const formattedContent = await formatNotesWithAI(content);
+      setContent(formattedContent);
+
+      // Save the formatted content
+      if (noteId) {
+        await updateNote(noteId, { content: formattedContent });
+      }
+
+      toast.success('Note formatted successfully!');
+    } catch (error) {
+      console.error('Failed to format note:', error);
+      // Error toast is already shown in formatNotesWithAI
+    } finally {
+      setIsFormatting(false);
     }
   };
 
@@ -104,7 +136,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
       </div>
 
       {/* Editor */}
-      <div className="flex-1 overflow-hidden editor-equal-height" data-color-mode={theme}>
+      <div className="flex-1 overflow-hidden editor-equal-height relative" data-color-mode={theme}>
         <MDEditor
           value={content}
           onChange={handleContentChange}
@@ -114,6 +146,27 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
           hideToolbar={false}
           className="!border-0"
         />
+
+        {/* Floating AI Format Button - positioned on left side (editor panel) */}
+        <Button
+          onClick={handleAIFormat}
+          disabled={isFormatting || !content.trim()}
+          className={cn(
+            "absolute bottom-6 left-6 z-10",
+            "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+            "text-white shadow-lg hover:shadow-xl",
+            "transition-all duration-200",
+            "disabled:opacity-50 disabled:cursor-not-allowed"
+          )}
+          size="lg"
+          title="Format with AI"
+        >
+          <Sparkles className={cn(
+            "h-5 w-5 mr-2",
+            isFormatting && "animate-spin"
+          )} />
+          {isFormatting ? 'Formatting...' : 'AI Format'}
+        </Button>
       </div>
     </div>
   );
