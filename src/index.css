@@ -1,0 +1,287 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 20% 10%;
+    --foreground: 220 10% 90%;
+
+    --card: 220 18% 12%;
+    --card-foreground: 220 10% 90%;
+
+    --popover: 220 18% 14%;
+    --popover-foreground: 220 10% 90%;
+
+    --primary: 160 60% 45%;
+    --primary-foreground: 220 20% 5%;
+
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 220 10% 85%;
+
+    --muted: 220 15% 20%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 200 70% 50%;
+    --accent-foreground: 220 20% 5%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 18%;
+    --ring: 160 60% 45%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 220 10% 80%;
+    --sidebar-primary: 160 60% 45%;
+    --sidebar-primary-foreground: 220 20% 5%;
+    --sidebar-accent: 220 15% 15%;
+    --sidebar-accent-foreground: 220 10% 90%;
+    --sidebar-border: 220 15% 15%;
+    --sidebar-ring: 160 60% 45%;
+
+    /* Custom tokens */
+    --editor-bg: 220 18% 11%;
+    --folder-icon: 45 80% 55%;
+    --note-icon: 200 60% 55%;
+    --success: 160 60% 45%;
+    --warning: 45 90% 55%;
+  }
+
+  .dark {
+    --background: 220 20% 10%;
+    --foreground: 220 10% 90%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Markdown editor styling */
+  .w-md-editor {
+    --color-canvas-default: hsl(var(--editor-bg)) !important;
+    --color-fg-default: hsl(var(--foreground)) !important;
+    --color-border-default: hsl(var(--border)) !important;
+    background-color: hsl(var(--editor-bg)) !important;
+    color: hsl(var(--foreground)) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .w-md-editor-text-pre>code,
+  .w-md-editor-text-input {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+
+  .w-md-editor-toolbar {
+    background-color: hsl(var(--card)) !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+  }
+
+  .w-md-editor-toolbar li>button {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  .w-md-editor-toolbar li>button:hover {
+    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--muted)) !important;
+  }
+
+  .wmde-markdown {
+    background-color: transparent !important;
+    color: hsl(var(--foreground)) !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+
+  .wmde-markdown h1,
+  .wmde-markdown h2,
+  .wmde-markdown h3,
+  .wmde-markdown h4,
+  .wmde-markdown h5,
+  .wmde-markdown h6 {
+    color: hsl(var(--foreground)) !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+  }
+
+  .wmde-markdown code {
+    background-color: hsl(var(--muted)) !important;
+    color: hsl(var(--primary)) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+
+  .wmde-markdown pre {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  .wmde-markdown a {
+    color: hsl(var(--accent)) !important;
+  }
+
+  .wmde-markdown blockquote {
+    border-left-color: hsl(var(--primary)) !important;
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* Markdown editor container fixes - Equal height for editor and preview */
+  .w-md-editor {
+    overflow: hidden !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .w-md-editor-content {
+    overflow: hidden !important;
+    height: 100% !important;
+    flex: 1 !important;
+    display: flex !important;
+  }
+
+  /* Force both editor and preview to have equal heights */
+  .w-md-editor-input,
+  .w-md-editor-preview {
+    flex: 1 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .w-md-editor-text,
+  .w-md-editor-preview>div {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
+  }
+
+  .w-md-editor-area {
+    height: 100% !important;
+    display: flex !important;
+  }
+
+  .wmde-markdown,
+  .wmde-markdown-var {
+    overflow-y: auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 100% !important;
+  }
+
+  /* Ensure text input area matches preview height exactly */
+  .w-md-editor-text-pre,
+  .w-md-editor-text-input {
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+
+  /* More specific rules with custom wrapper for equal heights */
+  .editor-equal-height .w-md-editor {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .editor-equal-height .w-md-editor-content {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    align-items: stretch !important;
+  }
+
+  .editor-equal-height .w-md-editor-input,
+  .editor-equal-height .w-md-editor-preview {
+    flex: 1 1 50% !important;
+    width: 50% !important;
+    max-width: 50% !important;
+  }
+
+  /* Remove any padding/margin that might cause misalignment */
+  .editor-equal-height .w-md-editor-input>*,
+  .editor-equal-height .w-md-editor-preview>* {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-subtle {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.2s ease-out;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
