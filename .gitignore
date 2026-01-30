@@ -1,0 +1,99 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+bun.lockb
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Vite
+.vite/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+
+# Editor
+*.sublime-workspace
+*.sublime-project
+
+# Firebase
+.firebase/
+.firebaserc
+
+# Node
+.npmrc
+.yarn/cache/
+.yarn/install-state.gz
+
+# Development
+.eslintcache
+
+# Debug
+debug.log
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Parcel related files
+dist/
+.parcel-cache/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Misc
+*.bak
+*.temp
+*.tmp
+.turbo/
+./CODEBASE_INDEX.md 

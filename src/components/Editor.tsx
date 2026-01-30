@@ -22,6 +22,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
+  const [desktopView, setDesktopView] = useState<'preview' | 'editor'>('preview'); // Desktop: preview first
   const [mobileView, setMobileView] = useState<'preview' | 'editor'>('preview'); // Mobile: preview first
 
   const note = notes.find(n => n.id === noteId);
@@ -144,6 +145,32 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
           </Button>
         </div>
 
+        {/* Desktop Edit Button - show only in preview mode */}
+        {desktopView === 'preview' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDesktopView('editor')}
+            className="hidden md:flex h-8"
+          >
+            <Edit3 className="h-4 w-4 mr-1" />
+            Edit
+          </Button>
+        )}
+
+        {/* Desktop Back to Preview Button - show only in editor mode */}
+        {desktopView === 'editor' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDesktopView('preview')}
+            className="hidden md:flex h-8"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Preview
+          </Button>
+        )}
+
         <Input
           value={title}
           onChange={(e) => handleTitleChange(e.target.value)}
@@ -159,41 +186,65 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="flex-1 overflow-hidden editor-equal-height relative" data-color-mode={theme}>
-        <MDEditor
-          value={content}
-          onChange={handleContentChange}
-          preview={mobileView === 'preview' ? 'preview' : (mobileView === 'editor' ? 'edit' : 'live')}
-          height="100%"
-          visibleDragbar={false}
-          hideToolbar={false}
-          className="!border-0"
-        />
+      {/* Editor/Preview */}
+      <div className="flex-1 overflow-hidden editor-equal-height relative flex" data-color-mode={theme}>
+        {/* Preview Mode - Centered */}
+        {desktopView === 'preview' ? (
+          <div className="flex-1 overflow-auto flex items-start justify-center bg-background">
+            <div className="w-full max-w-4xl px-8 py-6">
+              <div className="prose prose-invert dark:prose max-w-none">
+                <MDEditor.Markdown source={content} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Editor Mode */
+          <MDEditor
+            value={content}
+            onChange={handleContentChange}
+            preview={mobileView === 'preview' ? 'preview' : (mobileView === 'editor' ? 'edit' : 'live')}
+            height="100%"
+            visibleDragbar={false}
+            hideToolbar={false}
+            className="!border-0 flex-1"
+          />
+        )}
 
-        {/* Floating AI Format Button - only show in editor mode on mobile, always on desktop */}
-        <Button
-          onClick={handleAIFormat}
-          disabled={isFormatting || !content.trim()}
-          className={cn(
-            "absolute bottom-6 left-6 z-10",
-            "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
-            "text-white shadow-lg hover:shadow-xl",
-            "transition-all duration-200",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-            // Hide on mobile when in preview mode
-            "md:flex",
-            mobileView === 'preview' ? "hidden" : "flex"
-          )}
-          size="lg"
-          title="Format with AI"
-        >
-          <Sparkles className={cn(
-            "h-5 w-5 mr-2",
-            isFormatting && "animate-spin"
-          )} />
-          {isFormatting ? 'Formatting...' : 'AI Format'}
-        </Button>
+        {/* Mobile Editor - always show with toggle */}
+        {window.innerWidth < 768 && (
+          <MDEditor
+            value={content}
+            onChange={handleContentChange}
+            preview={mobileView === 'preview' ? 'preview' : 'edit'}
+            height="100%"
+            visibleDragbar={false}
+            hideToolbar={false}
+            className="!border-0 flex-1"
+          />
+        )}
+
+        {/* Floating AI Format Button - only show in editor mode */}
+        {desktopView === 'editor' || mobileView === 'editor' ? (
+          <Button
+            onClick={handleAIFormat}
+            disabled={isFormatting || !content.trim()}
+            className={cn(
+              "absolute bottom-6 left-6 z-10",
+              "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+              "text-white shadow-lg hover:shadow-xl",
+              "transition-all duration-200",
+              "disabled:opacity-50 disabled:cursor-not-allowed flex"
+            )}
+            size="lg"
+            title="Format with AI"
+          >
+            <Sparkles className={cn(
+              "h-5 w-5 mr-2",
+              isFormatting && "animate-spin"
+            )} />
+            {isFormatting ? 'Formatting...' : 'AI Format'}
+          </Button>
+        ) : null}
       </div>
     </div>
   );
