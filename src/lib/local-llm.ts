@@ -37,9 +37,10 @@ export function isWebGPUAvailable() {
 }
 
 export async function generateLocalAnswer(params: {
-  question: string;
-  context: string;
+  system: string;
+  user: string;
   onProgressText?: (t: string) => void;
+  temperature?: number;
 }): Promise<string> {
   if (!isWebGPUAvailable()) {
     throw new Error("WebGPU is not available on this device/browser");
@@ -47,18 +48,12 @@ export async function generateLocalAnswer(params: {
 
   const engine = await initLocalLLM({ onProgress: params.onProgressText });
 
-  const system =
-    "You are a helpful assistant. Answer the user ONLY using the provided context from their notes. " +
-    "If the context does not contain the answer, say you don't know based on the notes.";
-
-  const prompt = `Context from notes:\n${params.context}\n\nUser question: ${params.question}`;
-
   const res = await engine.chat.completions.create({
     messages: [
-      { role: "system", content: system },
-      { role: "user", content: prompt },
+      { role: "system", content: params.system },
+      { role: "user", content: params.user },
     ],
-    temperature: 0.2,
+    temperature: params.temperature ?? 0.2,
   });
 
   const msg = res?.choices?.[0]?.message?.content;

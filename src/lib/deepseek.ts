@@ -4,12 +4,12 @@ import { toast } from 'sonner';
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEEPSEEK_MODEL = 'tngtech/deepseek-r1t2-chimera:free';
 
-interface DeepSeekMessage {
+export interface OpenRouterMessage {
     role: 'system' | 'user' | 'assistant';
     content: string;
 }
 
-interface DeepSeekResponse {
+interface OpenRouterResponse {
     choices: Array<{
         message: {
             content: string;
@@ -31,6 +31,89 @@ export function isAIFormattingConfigured(): boolean {
     return !!getOpenRouterApiKey();
 }
 
+function stripCodeFences(text: string) {
+    let out = text.trim();
+
+    // Some models wrap markdown in ```markdown ... ``` which breaks rendering.
+    if (out.startsWith('```markdown')) {
+        out = out.replace(/^```markdown\n/, '').replace(/\n```$/, '');
+    } else if (out.startsWith('```')) {
+        out = out.replace(/^```\n/, '').replace(/\n```$/, '');
+    }
+
+    return out.trim();
+}
+
+/**
+ * Low-level OpenRouter chat helper.
+ * Intentionally does NOT toast by default so it can be reused in non-UI flows (e.g. RAG chat).
+ */
+export async function chatWithAI(params: {
+    messages: OpenRouterMessage[];
+    model?: string;
+    temperature?: number;
+    max_tokens?: number;
+}): Promise<string> {
+    const apiKey = getOpenRouterApiKey();
+
+    if (!apiKey) {
+        throw new Error('API key not configured');
+    }
+
+    const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'CrossNotes'
+        },
+        body: JSON.stringify({
+            model: params.model ?? DEEPSEEK_MODEL,
+            messages: params.messages,
+            temperature: params.temperature ?? 0.2,
+            max_tokens: params.max_tokens ?? 2500
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('OpenRouter API error:', errorData);
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data: OpenRouterResponse = await response.json();
+
+    const content = data?.choices?.[0]?.message?.content;
+    const text = typeof content === 'string' ? content.trim() : '';
+    if (!text) {
+        throw new Error('Empty response from AI');
+    }
+
+    return stripCodeFences(text);
+}
+
+/**
+ * Convenience wrapper for the RAG/KnowledgeBase chat.
+ */
+export async function answerWithAI(params: {
+    system: string;
+    user: string;
+    model?: string;
+    temperature?: number;
+    max_tokens?: number;
+}): Promise<string> {
+    return chatWithAI({
+        messages: [
+            { role: 'system', content: params.system },
+            { role: 'user', content: params.user },
+        ],
+        model: params.model,
+        temperature: params.temperature,
+        max_tokens: params.max_tokens,
+    });
+}
+
 export async function formatNotesWithAI(content: string): Promise<string> {
     const apiKey = getOpenRouterApiKey();
 
@@ -46,7 +129,7 @@ export async function formatNotesWithAI(content: string): Promise<string> {
         throw new Error('Empty content');
     }
 
-    const messages: DeepSeekMessage[] = [
+    const messages: OpenRouterMessage[] = [
         {
             role: 'system',
             content: `You are a markdown formatting expert. Format the user's notes into clean, proper markdown.
@@ -81,53 +164,11 @@ CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in code blocks. Do 
     ];
 
     try {
-        const response = await fetch(OPENROUTER_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': window.location.origin,
-                'X-Title': 'CrossNotes'
-            },
-            body: JSON.stringify({
-                model: DEEPSEEK_MODEL,
-                messages: messages,
-                temperature: 0.7,
-                max_tokens: 4000
-            })
+        const formattedContent = await chatWithAI({
+            messages,
+            temperature: 0.7,
+            max_tokens: 4000
         });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('DeepSeek API error:', errorData);
-            toast.error(`API Error: ${response.status} ${response.statusText}`);
-            throw new Error(`API request failed: ${response.statusText}`);
-        }
-
-        const data: DeepSeekResponse = await response.json();
-
-        if (!data.choices || data.choices.length === 0) {
-            toast.error('No response from AI');
-            throw new Error('Invalid API response');
-        }
-
-        let formattedContent = data.choices[0].message.content.trim();
-
-        if (!formattedContent) {
-            toast.error('AI returned empty content');
-            throw new Error('Empty response from AI');
-        }
-
-        // Clean up the response - remove code block wrappers if AI added them
-        // Some models wrap markdown in ```markdown ... ``` which breaks rendering
-        if (formattedContent.startsWith('```markdown')) {
-            formattedContent = formattedContent.replace(/^```markdown\n/, '').replace(/\n```$/, '');
-        } else if (formattedContent.startsWith('```')) {
-            formattedContent = formattedContent.replace(/^```\n/, '').replace(/\n```$/, '');
-        }
-
-        // Remove any leading/trailing whitespace again after cleaning
-        formattedContent = formattedContent.trim();
 
         return formattedContent;
     } catch (error) {

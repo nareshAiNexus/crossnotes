@@ -3,13 +3,14 @@ import Sidebar from '@/components/Sidebar';
 import Editor from '@/components/Editor';
 import { useNotes } from '@/hooks/useNotes';
 import { useAuth } from '@/hooks/useAuth';
+import { useNoteNavigation } from '@/hooks/useNoteNavigation';
 import AuthPage from './AuthPage';
 import { Loader2 } from 'lucide-react';
 
 export default function Index() {
   const { user, loading: authLoading, isConfigured } = useAuth();
   const { loading: notesLoading } = useNotes();
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const { selectedNoteId, openNote, viewRequest, highlightRequest } = useNoteNavigation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   if (authLoading) {
@@ -39,12 +40,19 @@ export default function Index() {
     <div className="h-screen flex bg-background overflow-hidden">
       <Sidebar
         selectedNoteId={selectedNoteId}
-        onSelectNote={setSelectedNoteId}
+        onSelectNote={(id) => openNote(id)}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
       <Editor
         noteId={selectedNoteId}
+        viewRequest={viewRequest}
+        highlightPhrases={
+          highlightRequest && highlightRequest.noteId === selectedNoteId
+            ? highlightRequest.phrases
+            : []
+        }
+        highlightNonce={highlightRequest?.nonce ?? 0}
         onMenuClick={() => setIsMobileSidebarOpen(true)}
       />
     </div>

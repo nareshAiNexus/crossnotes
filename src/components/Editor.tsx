@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import { Input } from '@/components/ui/input';
 import { useNotes, type Note } from '@/hooks/useNotes';
@@ -8,14 +8,19 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import debounce from '@/lib/debounce';
 import { formatNotesWithAI, isAIFormattingConfigured } from '@/lib/deepseek';
+import { makeRehypeHighlighter } from '@/lib/rehype-highlight';
+import { remarkSoftbreaksToBreaks } from '@/lib/remark-softbreaks';
 import { toast } from 'sonner';
 
 interface EditorProps {
   noteId: string | null;
+  viewRequest?: { view: 'preview' | 'editor'; nonce: number } | null;
+  highlightPhrases?: string[];
+  highlightNonce?: number;
   onMenuClick: () => void;
 }
 
-export default function Editor({ noteId, onMenuClick }: EditorProps) {
+export default function Editor({ noteId, viewRequest, highlightPhrases, highlightNonce, onMenuClick }: EditorProps) {
   const { notes, updateNote } = useNotes();
   const { theme } = useTheme();
   const [title, setTitle] = useState('');
@@ -24,6 +29,23 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
   const [isFormatting, setIsFormatting] = useState(false);
   const [desktopView, setDesktopView] = useState<'preview' | 'editor'>('preview'); // Desktop: preview first
   const [mobileView, setMobileView] = useState<'preview' | 'editor'>('preview'); // Mobile: preview first
+
+  useEffect(() => {
+    if (viewRequest?.view) {
+      setDesktopView(viewRequest.view);
+      setMobileView(viewRequest.view);
+    }
+  }, [viewRequest?.nonce]);
+
+  const remarkPlugins = useMemo(() => [remarkSoftbreaksToBreaks], []);
+
+  const rehypePlugins = useMemo(() => {
+    const phrases = (highlightPhrases ?? []).filter(Boolean);
+    if (phrases.length === 0) return [];
+    // highlightNonce included to force plugin recreation when highlights change
+    void highlightNonce;
+    return [makeRehypeHighlighter(phrases)];
+  }, [highlightPhrases, highlightNonce]);
 
   const note = notes.find(n => n.id === noteId);
 
@@ -277,7 +299,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full">
               <div className="w-full max-w-3xl px-8 py-6">
                 <article className="mx-auto prose lg:prose-lg max-w-none text-left">
-                  <MDEditor.Markdown source={content} />
+                  <MDEditor.Markdown source={content} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} />
                 </article>
               </div>
             </div>
@@ -291,6 +313,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
                 height="100%"
                 visibleDragbar={false}
                 hideToolbar={false}
+                previewOptions={{ remarkPlugins, rehypePlugins }}
                 className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-12"
               />
             </div>
@@ -303,7 +326,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full h-full">
               <div className="w-full max-w-2xl px-5 py-6">
                 <article className="mx-auto prose prose-base sm:prose-lg text-left dark:prose-invert">
-                  <MDEditor.Markdown source={content || '*No content yet. Switch to edit mode to start writing.*'} />
+                  <MDEditor.Markdown source={content || '*No content yet. Switch to edit mode to start writing.*'} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} />
                 </article>
               </div>
             </div>
@@ -316,6 +339,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
                 height="100%"
                 visibleDragbar={false}
                 hideToolbar={false}
+                previewOptions={{ remarkPlugins, rehypePlugins }}
                 className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-4 [&_.cm-editor]:!pr-4 [&_.cm-editor]:!text-base [&_.cm-editor]:!leading-relaxed [&_.w-md-editor-toolbar]:!px-2 [&_.w-md-editor-toolbar]:!py-2 [&_.w-md-editor-preview]:!hidden"
               />
             </div>

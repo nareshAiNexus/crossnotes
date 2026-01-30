@@ -245,6 +245,14 @@
     font-size: 85% !important;
   }
 
+  /* Knowledge Base highlights (when opening a note from Sources) */
+  .wmde-markdown mark.kb-highlight {
+    background: rgba(250, 204, 21, 0.35) !important;
+    color: inherit !important;
+    padding: 0.05em 0.15em !important;
+    border-radius: 0.25em !important;
+  }
+
   /* GitHub-style code blocks */
   .wmde-markdown pre {
     background-color: #161b22 !important;

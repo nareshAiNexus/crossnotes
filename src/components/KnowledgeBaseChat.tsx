@@ -16,16 +16,23 @@ import { useNotes } from "@/hooks/useNotes";
 import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
 import { askFromNotes } from "@/lib/rag";
 import { isWebGPUAvailable } from "@/lib/local-llm";
+import { useNoteNavigation } from "@/hooks/useNoteNavigation";
 
 type ChatMsg =
   | { role: "user"; content: string }
-  | { role: "assistant"; content: string; sources?: { noteTitle: string; snippet: string; score: number }[]; used?: string };
+  | {
+      role: "assistant";
+      content: string;
+      sources?: { noteId: string; noteTitle: string; highlightPhrases: string[] }[];
+      used?: string;
+    };
 
 export default function KnowledgeBaseChat() {
   const { user } = useAuth();
   const { notes } = useNotes();
 
   const kb = useKnowledgeBase({ userId: user?.uid ?? null, notes });
+  const { openNote } = useNoteNavigation();
 
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
@@ -54,13 +61,47 @@ export default function KnowledgeBaseChat() {
         onLocalProgressText: (t) => setLocalProgress(t),
       });
 
+      const normalizeSnippetToPhrase = (snippet: string) => {
+        const cleaned = snippet
+          .replace(/^#\s+.*?(\r?\n\r?\n)/, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!cleaned) return "";
+        return cleaned.split(" ").slice(0, 10).join(" ").trim();
+      };
+
+      // Group & dedupe sources per noteId, and carry a few highlight phrases.
+      const grouped = new Map<string, { noteId: string; noteTitle: string; highlightPhrases: string[]; topScore: number }>();
+      for (const s of res.sources) {
+        const existing = grouped.get(s.noteId);
+        const phrase = normalizeSnippetToPhrase(s.snippet);
+
+        if (!existing) {
+          grouped.set(s.noteId, {
+            noteId: s.noteId,
+            noteTitle: s.noteTitle,
+            highlightPhrases: phrase ? [phrase] : [],
+            topScore: s.score,
+          });
+        } else {
+          existing.topScore = Math.max(existing.topScore, s.score);
+          if (phrase && existing.highlightPhrases.length < 4 && !existing.highlightPhrases.includes(phrase)) {
+            existing.highlightPhrases.push(phrase);
+          }
+        }
+      }
+
+      const sources = Array.from(grouped.values())
+        .sort((a, b) => b.topScore - a.topScore)
+        .map(({ topScore, ...rest }) => rest);
+
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
           content: res.answer,
           used: res.used,
-          sources: res.sources.map((s) => ({ noteTitle: s.noteTitle, snippet: s.snippet, score: s.score })),
+          sources,
         },
       ]);
     } catch (e: any) {
@@ -167,8 +208,20 @@ export default function KnowledgeBaseChat() {
                         <div className="space-y-2">
                           {(m as any).sources.map((s: any, j: number) => (
                             <div key={j} className="text-xs">
-                              <div className="font-medium">{s.noteTitle}</div>
-                              <div className="text-muted-foreground">{s.snippet}…</div>
+                              <button
+                                type="button"
+                                className="font-medium underline underline-offset-2 hover:text-primary"
+                                onClick={() => {
+                                  openNote(s.noteId, {
+                                    view: "preview",
+                                    highlightPhrases: Array.isArray(s.highlightPhrases) ? s.highlightPhrases : [],
+                                  });
+                                  setOpen(false);
+                                }}
+                                title="Open note"
+                              >
+                                {s.noteTitle}
+                              </button>
                             </div>
                           ))}
                         </div>
