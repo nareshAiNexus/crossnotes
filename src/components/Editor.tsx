@@ -188,30 +188,31 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
 
       {/* Editor/Preview */}
       <div className="flex-1 overflow-hidden editor-equal-height relative flex" data-color-mode={theme}>
-        {/* Preview Mode - Centered */}
-        {desktopView === 'preview' ? (
-          <div className="flex-1 overflow-auto flex items-start justify-center bg-background">
-            <div className="w-full max-w-4xl px-8 py-6">
-              <div className="prose prose-invert dark:prose max-w-none">
+        {/* Desktop: Show centered preview or editor */}
+        <div className="hidden md:flex flex-1 w-full">
+          {desktopView === 'preview' ? (
+            // Centered Preview
+            <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full">
+              <div className="w-full max-w-3xl px-8 py-6">
                 <MDEditor.Markdown source={content} />
               </div>
             </div>
-          </div>
-        ) : (
-          /* Editor Mode */
-          <MDEditor
-            value={content}
-            onChange={handleContentChange}
-            preview={mobileView === 'preview' ? 'preview' : (mobileView === 'editor' ? 'edit' : 'live')}
-            height="100%"
-            visibleDragbar={false}
-            hideToolbar={false}
-            className="!border-0 flex-1"
-          />
-        )}
+          ) : (
+            // Editor Mode with preview on the right
+            <MDEditor
+              value={content}
+              onChange={handleContentChange}
+              preview="live"
+              height="100%"
+              visibleDragbar={false}
+              hideToolbar={false}
+              className="!border-0 flex-1 w-full"
+            />
+          )}
+        </div>
 
-        {/* Mobile Editor - always show with toggle */}
-        {window.innerWidth < 768 && (
+        {/* Mobile: Show MDEditor with toggle */}
+        <div className="md:hidden flex-1 w-full">
           <MDEditor
             value={content}
             onChange={handleContentChange}
@@ -219,9 +220,9 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             height="100%"
             visibleDragbar={false}
             hideToolbar={false}
-            className="!border-0 flex-1"
+            className="!border-0 flex-1 w-full"
           />
-        )}
+        </div>
 
         {/* Floating AI Format Button - only show in editor mode */}
         {desktopView === 'editor' || mobileView === 'editor' ? (
