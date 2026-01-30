@@ -7,7 +7,7 @@ import { Menu, Save, FileText, Sparkles, Edit3, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import debounce from '@/lib/debounce';
-import { formatNotesWithAI } from '@/lib/deepseek';
+import { formatNotesWithAI, isAIFormattingConfigured } from '@/lib/deepseek';
 import { toast } from 'sonner';
 
 interface EditorProps {
@@ -64,7 +64,14 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
     }
   }, [noteId, debouncedSave]); // Removed 'title' from dependencies as it's not used in the debouncedSave call here.
 
+  const isAIConfigured = isAIFormattingConfigured();
+
   const handleAIFormat = async () => {
+    if (!isAIConfigured) {
+      toast.error('AI formatting is not configured. Add the API key to your .env and restart the dev server.');
+      return;
+    }
+
     if (!noteId || !content.trim()) {
       toast.error('No content to format');
       return;
@@ -150,7 +157,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
         {/* Mobile AI Format Button - icon only - always visible */}
         <Button
           onClick={handleAIFormat}
-          disabled={isFormatting || !content.trim()}
+          disabled={!isAIConfigured || isFormatting || !content.trim()}
           className={cn(
             "h-10 w-10",
             "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
@@ -159,7 +166,11 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
           size="icon"
-          title="Format with AI"
+          title={
+            !isAIConfigured
+              ? 'Configure AI formatting (set VITE_OPENROUTER_DEEPSEEK_API_KEY)'
+              : 'Format with AI'
+          }
         >
           <Sparkles className={cn(
             "h-5 w-5",
@@ -209,7 +220,7 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
         {desktopView === 'editor' && (
           <Button
             onClick={handleAIFormat}
-            disabled={isFormatting || !content.trim()}
+            disabled={!isAIConfigured || isFormatting || !content.trim()}
             className={cn(
               "hidden md:flex h-8",
               "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
@@ -218,7 +229,11 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
             size="sm"
-            title="Format with AI"
+            title={
+              !isAIConfigured
+                ? 'Configure AI formatting (set VITE_OPENROUTER_DEEPSEEK_API_KEY)'
+                : 'Format with AI'
+            }
           >
             <Sparkles className={cn(
               "h-4 w-4 mr-1",

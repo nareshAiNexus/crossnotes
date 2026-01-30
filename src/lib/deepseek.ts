@@ -17,11 +17,27 @@ interface DeepSeekResponse {
     }>;
 }
 
+function getOpenRouterApiKey(): string | undefined {
+    // Backwards compatible:
+    // - preferred: VITE_OPENROUTER_DEEPSEEK_API_KEY
+    // - legacy:    VITE_DEEPSEEK_API_KEY
+    return (
+        import.meta.env.VITE_OPENROUTER_DEEPSEEK_API_KEY ||
+        import.meta.env.VITE_DEEPSEEK_API_KEY
+    );
+}
+
+export function isAIFormattingConfigured(): boolean {
+    return !!getOpenRouterApiKey();
+}
+
 export async function formatNotesWithAI(content: string): Promise<string> {
-    const apiKey = import.meta.env.VITE_OPENROUTER_DEEPSEEK_API_KEY;
+    const apiKey = getOpenRouterApiKey();
 
     if (!apiKey) {
-        toast.error('OpenRouter API key not found. Please add VITE_OPENROUTER_DEEPSEEK_API_KEY to your .env file');
+        toast.error(
+            'AI formatting is not configured. Add VITE_OPENROUTER_DEEPSEEK_API_KEY (or VITE_DEEPSEEK_API_KEY) to your .env file and restart the dev server.'
+        );
         throw new Error('API key not configured');
     }
 
