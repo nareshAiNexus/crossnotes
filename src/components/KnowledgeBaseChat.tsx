@@ -106,9 +106,12 @@ export default function KnowledgeBaseChat() {
       const res = await askFromNotes({
         userId: user.uid,
         question: q,
-        // Mobile optimization: smaller retrieval/context.
-        topK: isMobile ? 6 : 12,
-        maxContextChars: isMobile ? 4500 : 8000,
+        // Mobile optimization: still keep this smaller than desktop, but not so small that retrieval quality collapses.
+        topK: isMobile ? 8 : 12,
+        maxContextChars: isMobile ? 6000 : 8000,
+        // Mobile: loosen thresholds so we don't incorrectly say "not found" due to fewer chunks / shorter context.
+        minTopScore: isMobile ? 0.06 : undefined,
+        minScore: isMobile ? 0.12 : undefined,
         preferLocalLLM: preferLocal && !isMobile,
         onLocalProgressText: throttledProgress,
       });
