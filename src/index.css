@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+
+.wmde-markdown-var .cm-editor {
+  padding-left: 2.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @layer base {

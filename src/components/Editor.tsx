@@ -143,6 +143,28 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             <Edit3 className="h-4 w-4 mr-1" />
             Edit
           </Button>
+          {/* Mobile AI Format Button - show only in editor mode */}
+          {mobileView === 'editor' && (
+            <Button
+              onClick={handleAIFormat}
+              disabled={isFormatting || !content.trim()}
+              className={cn(
+                "h-8",
+                "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+                "text-white",
+                "transition-all duration-200",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+              size="sm"
+              title="Format with AI"
+            >
+              <Sparkles className={cn(
+                "h-4 w-4 mr-1",
+                isFormatting && "animate-spin"
+              )} />
+              {isFormatting ? 'Formatting...' : 'AI'}
+            </Button>
+          )}
         </div>
 
         {/* Desktop Edit Button - show only in preview mode */}
@@ -168,6 +190,29 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
           >
             <Eye className="h-4 w-4 mr-1" />
             Preview
+          </Button>
+        )}
+
+        {/* Desktop AI Format Button - show only in editor mode */}
+        {desktopView === 'editor' && (
+          <Button
+            onClick={handleAIFormat}
+            disabled={isFormatting || !content.trim()}
+            className={cn(
+              "hidden md:flex h-8",
+              "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+              "text-white",
+              "transition-all duration-200",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+            size="sm"
+            title="Format with AI"
+          >
+            <Sparkles className={cn(
+              "h-4 w-4 mr-1",
+              isFormatting && "animate-spin"
+            )} />
+            {isFormatting ? 'Formatting...' : 'AI Format'}
           </Button>
         )}
 
@@ -199,15 +244,17 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             </div>
           ) : (
             // Editor Mode with preview on the right
-            <MDEditor
-              value={content}
-              onChange={handleContentChange}
-              preview="live"
-              height="100%"
-              visibleDragbar={false}
-              hideToolbar={false}
-              className="!border-0 flex-1 w-full"
-            />
+            <div className="flex-1 flex flex-col">
+              <MDEditor
+                value={content}
+                onChange={handleContentChange}
+                preview="live"
+                height="100%"
+                visibleDragbar={false}
+                hideToolbar={false}
+                className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-12"
+              />
+            </div>
           )}
         </div>
 
@@ -220,32 +267,9 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             height="100%"
             visibleDragbar={false}
             hideToolbar={false}
-            className="!border-0 flex-1 w-full"
+            className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-8"
           />
         </div>
-
-        {/* Floating AI Format Button - only show in editor mode */}
-        {desktopView === 'editor' || mobileView === 'editor' ? (
-          <Button
-            onClick={handleAIFormat}
-            disabled={isFormatting || !content.trim()}
-            className={cn(
-              "absolute bottom-6 left-6 z-10",
-              "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
-              "text-white shadow-lg hover:shadow-xl",
-              "transition-all duration-200",
-              "disabled:opacity-50 disabled:cursor-not-allowed flex"
-            )}
-            size="lg"
-            title="Format with AI"
-          >
-            <Sparkles className={cn(
-              "h-5 w-5 mr-2",
-              isFormatting && "animate-spin"
-            )} />
-            {isFormatting ? 'Formatting...' : 'AI Format'}
-          </Button>
-        ) : null}
       </div>
     </div>
   );
