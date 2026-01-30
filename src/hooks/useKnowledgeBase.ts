@@ -22,6 +22,7 @@ export interface KBProgress {
 export function useKnowledgeBase(params: {
   userId: string | null;
   notes: Note[];
+  chunking?: { targetChars?: number; overlapChars?: number };
 }) {
   const [status, setStatus] = useState<KBStatus>("idle");
   const [progress, setProgress] = useState<KBProgress>({ stage: "idle" });
@@ -38,7 +39,10 @@ export function useKnowledgeBase(params: {
       // remove old chunks for note (simple approach)
       await deleteChunksByNote(userId, note.id);
 
-      const chunks = chunkNote({ id: note.id, title: note.title, content: note.content });
+      const chunks = chunkNote(
+        { id: note.id, title: note.title, content: note.content },
+        params.chunking
+      );
       if (chunks.length === 0) return;
 
       const vectors: number[][] = [];
@@ -63,7 +67,7 @@ export function useKnowledgeBase(params: {
       await upsertChunks(toStore);
       lastIndexedAtRef.current.set(note.id, note.updatedAt ?? now);
     },
-    [params.userId]
+    [params.userId, params.chunking]
   );
 
   const indexAllNotes = useCallback(

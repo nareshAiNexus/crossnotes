@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { MessageCircle, Send, Sparkles, Database, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotes } from "@/hooks/useNotes";
 import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { askFromNotes } from "@/lib/rag";
 import { isWebGPUAvailable } from "@/lib/local-llm";
 import { useNoteNavigation } from "@/hooks/useNoteNavigation";
@@ -27,22 +28,51 @@ type ChatMsg =
       used?: string;
     };
 
+function ThinkingIndicator({ label }: { label?: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-muted-foreground/70 animate-bounce" style={{ animationDelay: "0ms" }} />
+        <span className="h-2 w-2 rounded-full bg-muted-foreground/70 animate-bounce" style={{ animationDelay: "140ms" }} />
+        <span className="h-2 w-2 rounded-full bg-muted-foreground/70 animate-bounce" style={{ animationDelay: "280ms" }} />
+      </div>
+      {label ? <span className="text-xs text-muted-foreground">{label}</span> : null}
+    </div>
+  );
+}
+
 export default function KnowledgeBaseChat() {
   const { user } = useAuth();
   const { notes } = useNotes();
+  const isMobile = useIsMobile();
 
-  const kb = useKnowledgeBase({ userId: user?.uid ?? null, notes });
+  // Mobile optimization: fewer/smaller chunks => fewer embeddings => less CPU/RAM.
+  const kb = useKnowledgeBase({
+    userId: user?.uid ?? null,
+    notes,
+    chunking: isMobile ? { targetChars: 2200, overlapChars: 120 } : undefined,
+  });
   const { openNote } = useNoteNavigation();
 
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [loading, setLoading] = useState(false);
-  const [preferLocal, setPreferLocal] = useState(true);
+
+  // Mobile optimization: default to remote (local WebGPU models are heavy and can freeze phones).
+  const [preferLocal, setPreferLocal] = useState(() => !isMobile);
   const [localProgress, setLocalProgress] = useState<string | null>(null);
+
+  // Throttle local progress updates to avoid excessive re-renders on slower devices.
+  const lastProgressAtRef = useRef(0);
+  const pendingProgressRef = useRef<string | null>(null);
+  const progressTimerRef = useRef<number | null>(null);
 
   const webgpu = useMemo(() => isWebGPUAvailable(), []);
   const canAsk = kb.status === "ready" && !!user;
+
+  // Mobile optimization: never allow local LLM toggle on mobile (too heavy).
+  const canUseLocal = webgpu && !isMobile;
 
   const send = async () => {
     const q = question.trim();
@@ -54,11 +84,33 @@ export default function KnowledgeBaseChat() {
     setLocalProgress(null);
 
     try {
+      const throttledProgress = (t: string) => {
+        const now = Date.now();
+        pendingProgressRef.current = t;
+
+        // immediate update at most every 250ms
+        if (now - lastProgressAtRef.current > 250) {
+          lastProgressAtRef.current = now;
+          setLocalProgress(t);
+          return;
+        }
+
+        if (progressTimerRef.current != null) return;
+        progressTimerRef.current = window.setTimeout(() => {
+          progressTimerRef.current = null;
+          lastProgressAtRef.current = Date.now();
+          if (pendingProgressRef.current) setLocalProgress(pendingProgressRef.current);
+        }, 250);
+      };
+
       const res = await askFromNotes({
         userId: user.uid,
         question: q,
-        preferLocalLLM: preferLocal,
-        onLocalProgressText: (t) => setLocalProgress(t),
+        // Mobile optimization: smaller retrieval/context.
+        topK: isMobile ? 6 : 12,
+        maxContextChars: isMobile ? 4500 : 8000,
+        preferLocalLLM: preferLocal && !isMobile,
+        onLocalProgressText: throttledProgress,
       });
 
       const normalizeSnippetToPhrase = (snippet: string) => {
@@ -156,8 +208,14 @@ export default function KnowledgeBaseChat() {
                   variant={preferLocal ? "default" : "outline"}
                   size="sm"
                   onClick={() => setPreferLocal((v) => !v)}
-                  disabled={!webgpu}
-                  title={!webgpu ? "WebGPU not available (local LLM disabled)" : "Toggle local LLM"}
+                  disabled={!canUseLocal}
+                  title={
+                    isMobile
+                      ? "Local LLM is disabled on mobile for performance"
+                      : !webgpu
+                        ? "WebGPU not available (local LLM disabled)"
+                        : "Toggle local LLM"
+                  }
                 >
                   <Cpu className="h-4 w-4 mr-2" />
                   Local LLM
@@ -229,6 +287,21 @@ export default function KnowledgeBaseChat() {
                     )}
                   </div>
                 ))}
+
+                {/* Thinking bubble */}
+                {loading && (
+                  <div className={cn("rounded-lg p-3 bg-card")}> 
+                    <div className="text-xs text-muted-foreground mb-1">
+                      Assistant{preferLocal && !isMobile ? " (local)" : ""}
+                    </div>
+                    {/* Mobile optimization: avoid bounce animation */}
+                    {isMobile ? (
+                      <div className="text-xs text-muted-foreground animate-pulse">Thinking…</div>
+                    ) : (
+                      <ThinkingIndicator label={localProgress ?? "Thinking…"} />
+                    )}
+                  </div>
+                )}
               </div>
             </ScrollArea>
 
