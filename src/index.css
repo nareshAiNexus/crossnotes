@@ -140,6 +140,22 @@
     padding: 16px 24px !important;
   }
 
+  /* Ensure the actual CodeMirror content isn't flush to the left edge */
+  .w-md-editor .cm-content {
+    padding: 16px 24px !important;
+  }
+
+  /* Mobile: slightly tighter padding */
+  @media (max-width: 767px) {
+    .w-md-editor .cm-content {
+      padding: 16px 16px !important;
+    }
+
+    .wmde-markdown {
+      padding: 16px 16px !important;
+    }
+  }
+
   .w-md-editor-text-pre {
     padding: 0 !important;
   }
@@ -410,11 +426,10 @@
       max-width: 50% !important;
     }
 
-    /* Remove any padding/margin that might cause misalignment */
+    /* Remove margins that might cause misalignment (keep padding for readability) */
     .editor-equal-height .w-md-editor-input>*,
     .editor-equal-height .w-md-editor-preview>* {
       margin: 0 !important;
-      padding: 0 !important;
     }
   }
 }
@@ -468,43 +483,30 @@
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
-/* Theme sweep animation - diagonal from bottom-right to top-left */
-@keyframes theme-sweep {
-  from {
-    clip-path: circle(0% at 100% 100%);
-  }
-
-  to {
-    clip-path: circle(150% at 100% 100%);
-  }
-}
-
-@keyframes theme-sweep-in {
-  from {
-    clip-path: circle(0% at 100% 100%);
-  }
-
-  to {
-    clip-path: circle(150% at 100% 100%);
-  }
-}
-
 /* Theme transition styles */
+html,
 body {
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
-body.theme-transitioning::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: hsl(var(--background));
-  z-index: 9999;
-  pointer-events: none;
-  animation: theme-sweep 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+/* Enable slightly broader transitions only during theme toggle (prevents flicker, stays subtle) */
+.theme-animating,
+.theme-animating * {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    fill 200ms ease,
+    stroke 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  .theme-animating,
+  .theme-animating * {
+    transition: none !important;
+  }
 }
 
 /* Light mode specific editor styles - GitHub Light Theme */
