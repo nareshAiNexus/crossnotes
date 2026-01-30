@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,8 +9,6 @@
   padding-left: 2.5rem !important;
   padding-right: 1.5rem !important;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @layer base {
   :root {
@@ -397,18 +397,25 @@
     align-items: stretch !important;
   }
 
-  .editor-equal-height .w-md-editor-input,
-  .editor-equal-height .w-md-editor-preview {
-    flex: 1 1 50% !important;
-    width: 50% !important;
-    max-width: 50% !important;
-  }
+  /*
+   * IMPORTANT: Only force a 50/50 split on desktop.
+   * On mobile we hide the preview pane, and these rules would otherwise
+   * constrain the editor input to 50% width (making it look centered/narrow).
+   */
+  @media (min-width: 768px) {
+    .editor-equal-height .w-md-editor-input,
+    .editor-equal-height .w-md-editor-preview {
+      flex: 1 1 50% !important;
+      width: 50% !important;
+      max-width: 50% !important;
+    }
 
-  /* Remove any padding/margin that might cause misalignment */
-  .editor-equal-height .w-md-editor-input>*,
-  .editor-equal-height .w-md-editor-preview>* {
-    margin: 0 !important;
-    padding: 0 !important;
+    /* Remove any padding/margin that might cause misalignment */
+    .editor-equal-height .w-md-editor-input>*,
+    .editor-equal-height .w-md-editor-preview>* {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
   }
 }
 

@@ -112,60 +112,72 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
 
   return (
     <div className="flex-1 flex flex-col bg-background overflow-hidden animate-fade-in">
-      {/* Header with mobile toggle buttons */}
-      <div className="flex items-center gap-3 p-4 border-b border-border shrink-0">
+      {/* Mobile Header - Icons only */}
+      <div className="md:hidden flex items-center gap-2 p-4 border-b border-border shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden shrink-0"
+          className="shrink-0 h-10 w-10"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        {/* Mobile View Toggle Buttons */}
-        <div className="md:hidden flex gap-2 shrink-0">
+        {/* Mobile View Toggle - Icons only */}
+        <div className="flex gap-1.5 shrink-0">
           <Button
-            variant={mobileView === 'preview' ? 'default' : 'outline'}
-            size="sm"
+            variant={mobileView === 'preview' ? 'default' : 'ghost'}
+            size="icon"
             onClick={() => setMobileView('preview')}
-            className="h-8"
+            className="h-10 w-10"
+            title="Preview"
           >
-            <Eye className="h-4 w-4 mr-1" />
-            Preview
+            <Eye className="h-5 w-5" />
           </Button>
           <Button
-            variant={mobileView === 'editor' ? 'default' : 'outline'}
-            size="sm"
+            variant={mobileView === 'editor' ? 'default' : 'ghost'}
+            size="icon"
             onClick={() => setMobileView('editor')}
-            className="h-8"
+            className="h-10 w-10"
+            title="Edit"
           >
-            <Edit3 className="h-4 w-4 mr-1" />
-            Edit
+            <Edit3 className="h-5 w-5" />
           </Button>
-          {/* Mobile AI Format Button - show only in editor mode */}
-          {mobileView === 'editor' && (
-            <Button
-              onClick={handleAIFormat}
-              disabled={isFormatting || !content.trim()}
-              className={cn(
-                "h-8",
-                "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
-                "text-white",
-                "transition-all duration-200",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
-              )}
-              size="sm"
-              title="Format with AI"
-            >
-              <Sparkles className={cn(
-                "h-4 w-4 mr-1",
-                isFormatting && "animate-spin"
-              )} />
-              {isFormatting ? 'Formatting...' : 'AI'}
-            </Button>
-          )}
         </div>
+
+        <div className="flex-1" />
+
+        {/* Mobile AI Format Button - icon only - always visible */}
+        <Button
+          onClick={handleAIFormat}
+          disabled={isFormatting || !content.trim()}
+          className={cn(
+            "h-10 w-10",
+            "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+            "text-white shadow-lg",
+            "transition-all duration-200",
+            "disabled:opacity-50 disabled:cursor-not-allowed"
+          )}
+          size="icon"
+          title="Format with AI"
+        >
+          <Sparkles className={cn(
+            "h-5 w-5",
+            isFormatting && "animate-spin"
+          )} />
+        </Button>
+
+        {/* Saving indicator - mobile */}
+        <div className={cn(
+          "flex items-center gap-1 text-xs transition-opacity",
+          isSaving ? "opacity-100" : "opacity-0"
+        )}>
+          <Save className="h-4 w-4 text-primary animate-pulse-subtle" />
+        </div>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex items-center gap-3 p-4 border-b border-border shrink-0">
 
         {/* Desktop Edit Button - show only in preview mode */}
         {desktopView === 'preview' && (
@@ -223,12 +235,22 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
           className="flex-1 text-lg font-medium bg-transparent border-none shadow-none focus-visible:ring-0 px-0"
         />
         <div className={cn(
-          "flex items-center gap-1 text-xs transition-opacity",
+          "hidden md:flex items-center gap-1 text-xs transition-opacity",
           isSaving ? "opacity-100" : "opacity-0"
         )}>
           <Save className="h-3 w-3 text-primary animate-pulse-subtle" />
           <span className="text-muted-foreground">Saving...</span>
         </div>
+      </div>
+
+      {/* Mobile Title Bar */}
+      <div className="md:hidden flex items-center gap-2 px-4 py-4 border-b border-border shrink-0">
+        <Input
+          value={title}
+          onChange={(e) => handleTitleChange(e.target.value)}
+          placeholder="Note title"
+          className="flex-1 text-lg font-semibold bg-transparent border-none shadow-none focus-visible:ring-0 px-0 h-auto py-1"
+        />
       </div>
 
       {/* Editor/Preview */}
@@ -239,7 +261,9 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
             // Centered Preview
             <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full">
               <div className="w-full max-w-3xl px-8 py-6">
-                <MDEditor.Markdown source={content} />
+                <article className="mx-auto prose lg:prose-lg max-w-none text-left">
+                  <MDEditor.Markdown source={content} />
+                </article>
               </div>
             </div>
           ) : (
@@ -258,17 +282,29 @@ export default function Editor({ noteId, onMenuClick }: EditorProps) {
           )}
         </div>
 
-        {/* Mobile: Show MDEditor with toggle */}
+        {/* Mobile: Show preview or editor full width, centered */}
         <div className="md:hidden flex-1 w-full">
-          <MDEditor
-            value={content}
-            onChange={handleContentChange}
-            preview={mobileView === 'preview' ? 'preview' : 'edit'}
-            height="100%"
-            visibleDragbar={false}
-            hideToolbar={false}
-            className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-8"
-          />
+          {mobileView === 'preview' ? (
+            <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full h-full">
+              <div className="w-full max-w-2xl px-5 py-6">
+                <article className="mx-auto prose prose-base sm:prose-lg text-left dark:prose-invert">
+                  <MDEditor.Markdown source={content || '*No content yet. Switch to edit mode to start writing.*'} />
+                </article>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col h-full">
+              <MDEditor
+                value={content}
+                onChange={handleContentChange}
+                preview="edit"
+                height="100%"
+                visibleDragbar={false}
+                hideToolbar={false}
+                className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-4 [&_.cm-editor]:!pr-4 [&_.cm-editor]:!text-base [&_.cm-editor]:!leading-relaxed [&_.w-md-editor-toolbar]:!px-2 [&_.w-md-editor-toolbar]:!py-2 [&_.w-md-editor-preview]:!hidden"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
