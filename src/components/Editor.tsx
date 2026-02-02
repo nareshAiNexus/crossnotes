@@ -3,7 +3,7 @@ import MDEditor from '@uiw/react-md-editor';
 import { Input } from '@/components/ui/input';
 import { useNotes, type Note } from '@/hooks/useNotes';
 import { useTheme } from '@/hooks/useTheme';
-import { Menu, Save, FileText, Sparkles, Edit3, Eye } from 'lucide-react';
+import { Menu, Save, FileText, Sparkles, Edit3, Eye, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import debounce from '@/lib/debounce';
@@ -18,9 +18,19 @@ interface EditorProps {
   highlightPhrases?: string[];
   highlightNonce?: number;
   onMenuClick: () => void;
+  onToggleDesktopSidebar?: () => void;
+  isDesktopSidebarHidden?: boolean;
 }
 
-export default function Editor({ noteId, viewRequest, highlightPhrases, highlightNonce, onMenuClick }: EditorProps) {
+export default function Editor({
+  noteId,
+  viewRequest,
+  highlightPhrases,
+  highlightNonce,
+  onMenuClick,
+  onToggleDesktopSidebar,
+  isDesktopSidebarHidden,
+}: EditorProps) {
   const { notes, updateNote } = useNotes();
   const { theme } = useTheme();
   const [title, setTitle] = useState('');
@@ -121,19 +131,40 @@ export default function Editor({ noteId, viewRequest, highlightPhrases, highligh
 
   if (!noteId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
-        <div className="text-center text-muted-foreground animate-fade-in">
-          <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
-          <h2 className="text-xl font-medium mb-2">Select a note</h2>
-          <p className="text-sm">Choose a note from the sidebar or create a new one</p>
-          <Button
-            variant="ghost"
-            className="mt-4 md:hidden"
-            onClick={onMenuClick}
-          >
-            <Menu className="h-4 w-4 mr-2" />
-            Open Sidebar
-          </Button>
+      <div className="flex-1 flex flex-col bg-background overflow-hidden">
+        {/* Desktop header (keeps sidebar toggle accessible) */}
+        <div className="hidden md:flex items-center gap-3 p-4 border-b border-border shrink-0">
+          {onToggleDesktopSidebar && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={onToggleDesktopSidebar}
+              title={isDesktopSidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
+            >
+              {isDesktopSidebarHidden ? (
+                <PanelLeftOpen className="h-5 w-5" />
+              ) : (
+                <PanelLeftClose className="h-5 w-5" />
+              )}
+            </Button>
+          )}
+        </div>
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-muted-foreground animate-fade-in">
+            <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+            <h2 className="text-xl font-medium mb-2">Select a note</h2>
+            <p className="text-sm">Choose a note from the sidebar or create a new one</p>
+            <Button
+              variant="ghost"
+              className="mt-4 md:hidden"
+              onClick={onMenuClick}
+            >
+              <Menu className="h-4 w-4 mr-2" />
+              Open Sidebar
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -211,6 +242,21 @@ export default function Editor({ noteId, viewRequest, highlightPhrases, highligh
 
       {/* Desktop Header */}
       <div className="hidden md:flex items-center gap-3 p-4 border-b border-border shrink-0">
+        {onToggleDesktopSidebar && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={onToggleDesktopSidebar}
+            title={isDesktopSidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
+          >
+            {isDesktopSidebarHidden ? (
+              <PanelLeftOpen className="h-5 w-5" />
+            ) : (
+              <PanelLeftClose className="h-5 w-5" />
+            )}
+          </Button>
+        )}
 
         {/* Desktop Edit Button - show only in preview mode */}
         {desktopView === 'preview' && (

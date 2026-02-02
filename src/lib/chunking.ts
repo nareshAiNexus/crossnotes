@@ -13,6 +13,15 @@ export interface NoteChunk {
   content: string;
 }
 
+export interface DocumentChunk {
+  chunkId: string;
+  documentId: string;
+  fileName: string;
+  chunkIndex: number;
+  content: string;
+  pageNumber?: number;
+}
+
 const DEFAULT_TARGET_CHARS = 1200;
 const DEFAULT_OVERLAP_CHARS = 200;
 
@@ -81,4 +90,67 @@ export function chunkNote(
 
   flush();
   return chunks;
+}
+
+/**
+ * Chunk a document (PDF) by pages
+ * Each page's text is chunked separately to preserve page numbers for citations
+ */
+export function chunkDocument(
+  document: { id: string; fileName: string; pages: Array<{ pageNumber: number; text: string }> },
+  opts?: { targetChars?: number; overlapChars?: number }
+): DocumentChunk[] {
+  const targetChars = opts?.targetChars ?? DEFAULT_TARGET_CHARS;
+  const overlapChars = opts?.overlapChars ?? DEFAULT_OVERLAP_CHARS;
+
+  const allChunks: DocumentChunk[] = [];
+  let globalIdx = 0;
+
+  for (const page of document.pages) {
+    const raw = normalizeText(page.text);
+    if (!raw) continue;
+
+    const paragraphs = raw.split(/\n\s*\n+/g).map((p) => p.trim()).filter(Boolean);
+
+    let buffer = "";
+
+    const flush = () => {
+      const content = buffer.trim();
+      if (!content) return;
+
+      allChunks.push({
+        chunkId: `${document.id}::${globalIdx}`,
+        documentId: document.id,
+        fileName: document.fileName,
+        chunkIndex: globalIdx,
+        content: `# ${document.fileName} (Page ${page.pageNumber})\n\n${content}`,
+        pageNumber: page.pageNumber,
+      });
+      globalIdx += 1;
+    };
+
+    for (const p of paragraphs) {
+      if (!buffer) {
+        buffer = p;
+        continue;
+      }
+
+      const candidate = `${buffer}\n\n${p}`;
+
+      if (candidate.length <= targetChars) {
+        buffer = candidate;
+        continue;
+      }
+
+      flush();
+
+      // For documents, we use smaller overlap to avoid cross-page confusion
+      const overlap = buffer.slice(Math.max(0, buffer.length - overlapChars));
+      buffer = overlap ? `${overlap}\n\n${p}` : p;
+    }
+
+    flush();
+  }
+
+  return allChunks;
 }

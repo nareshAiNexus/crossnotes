@@ -3,12 +3,16 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 export interface VectorChunk {
   chunkId: string;
   userId: string;
-  noteId: string;
-  noteTitle: string;
+  sourceId: string; // noteId or documentId
+  sourceType: 'note' | 'document'; // distinguish source type
+  sourceTitle: string; // note title or document filename
   chunkIndex: number;
   content: string;
   vector: number[];
   updatedAt: number;
+  // For documents only
+  pageNumber?: number; // PDF page number
+  fileName?: string; // original filename
   // denormalized field for indexing
   noteKey?: string;
 }
@@ -41,8 +45,8 @@ export async function initVectorDB() {
   return dbPromise;
 }
 
-function noteKey(userId: string, noteId: string) {
-  return `${userId}::${noteId}`;
+function sourceKey(userId: string, sourceId: string) {
+  return `${userId}::${sourceId}`;
 }
 
 export async function upsertChunks(chunks: VectorChunk[]) {
@@ -50,16 +54,16 @@ export async function upsertChunks(chunks: VectorChunk[]) {
   const tx = db.transaction("chunks", "readwrite");
   for (const c of chunks) {
     // denormalize noteKey to index efficiently
-    await tx.store.put({ ...c, noteKey: noteKey(c.userId, c.noteId) });
+    await tx.store.put({ ...c, noteKey: sourceKey(c.userId, c.sourceId) });
   }
   await tx.done;
 }
 
-export async function deleteChunksByNote(userId: string, noteId: string) {
+export async function deleteChunksBySource(userId: string, sourceId: string) {
   const db = await initVectorDB();
   const tx = db.transaction("chunks", "readwrite");
   const idx = tx.store.index("noteKey");
-  const key = noteKey(userId, noteId);
+  const key = sourceKey(userId, sourceId);
 
   let cursor = await idx.openCursor(key);
   while (cursor) {
@@ -69,6 +73,9 @@ export async function deleteChunksByNote(userId: string, noteId: string) {
 
   await tx.done;
 }
+
+// Backward compatibility alias
+export const deleteChunksByNote = deleteChunksBySource;
 
 export async function getChunksByUser(userId: string): Promise<VectorChunk[]> {
   const db = await initVectorDB();

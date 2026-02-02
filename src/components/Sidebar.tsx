@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Plus, MoreHorizontal, Trash2, Edit2, Menu, X, LogOut } from 'lucide-react';
+import { useState, type CSSProperties, type PointerEvent } from 'react';
+import { ChevronRight, ChevronDown, Folder, FileText, Plus, MoreHorizontal, Trash2, Edit2, X, LogOut, PanelLeftClose } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,6 +18,8 @@ import {
 import { useNotes, type Note, type Folder as FolderType } from '@/hooks/useNotes';
 import { useAuth } from '@/hooks/useAuth';
 import ThemeToggle from '@/components/ThemeToggle';
+import DocumentUpload from '@/components/DocumentUpload';
+import DocumentList from '@/components/DocumentList';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -26,9 +28,22 @@ interface SidebarProps {
   onSelectNote: (noteId: string) => void;
   isMobileOpen: boolean;
   onMobileClose: () => void;
+  desktopWidth: number;
+  isDesktopHidden: boolean;
+  onToggleDesktopHidden: () => void;
+  onResizeStart: (e: PointerEvent<HTMLDivElement>) => void;
 }
 
-export default function Sidebar({ selectedNoteId, onSelectNote, isMobileOpen, onMobileClose }: SidebarProps) {
+export default function Sidebar({
+  selectedNoteId,
+  onSelectNote,
+  isMobileOpen,
+  onMobileClose,
+  desktopWidth,
+  isDesktopHidden,
+  onToggleDesktopHidden,
+  onResizeStart,
+}: SidebarProps) {
   const { notes, folders, createNote, createFolder, deleteNote, deleteFolder, updateFolder } = useNotes();
   const { user, logout } = useAuth();
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -137,6 +152,17 @@ export default function Sidebar({ selectedNoteId, onSelectNote, isMobileOpen, on
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
+            {!isDesktopHidden && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden md:inline-flex text-sidebar-foreground"
+                onClick={onToggleDesktopHidden}
+                title="Hide sidebar"
+              >
+                <PanelLeftClose className="h-5 w-5" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -215,6 +241,8 @@ export default function Sidebar({ selectedNoteId, onSelectNote, isMobileOpen, on
             </div>
           </DialogContent>
         </Dialog>
+
+        <DocumentUpload folderId={null} />
       </div>
 
       {/* Content */}
@@ -314,6 +342,12 @@ export default function Sidebar({ selectedNoteId, onSelectNote, isMobileOpen, on
             <p className="text-xs mt-1">Create your first note!</p>
           </div>
         )}
+
+        {/* Documents Section */}
+        <div className="pt-4 mt-4 border-t border-sidebar-border">
+          <p className="text-xs text-muted-foreground px-3 py-1 uppercase tracking-wider">Documents</p>
+          <DocumentList />
+        </div>
       </div>
 
       {/* Footer */}
@@ -343,13 +377,30 @@ export default function Sidebar({ selectedNoteId, onSelectNote, isMobileOpen, on
 
       {/* Sidebar */}
       <aside
+        style={{ '--sidebar-width': `${desktopWidth}px` } as CSSProperties}
         className={cn(
-          "fixed md:relative inset-y-0 left-0 z-50 w-72 h-screen bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out",
+          "fixed md:relative inset-y-0 left-0 z-50 h-screen bg-sidebar border-r border-sidebar-border",
+          "transition-[transform,width] duration-300 ease-in-out",
+          "w-72 md:w-[var(--sidebar-width)]",
           "md:translate-x-0",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+          isMobileOpen ? "translate-x-0" : "-translate-x-full",
+          isDesktopHidden && "md:w-0 md:border-r-0 md:overflow-hidden md:pointer-events-none"
         )}
       >
         {sidebarContent}
+
+        {/* Desktop resize handle */}
+        {!isDesktopHidden && (
+          <div
+            onPointerDown={onResizeStart}
+            role="separator"
+            aria-label="Resize sidebar"
+            className={cn(
+              "hidden md:block absolute top-0 right-0 h-full w-1.5 cursor-col-resize",
+              "hover:bg-sidebar-accent/60"
+            )}
+          />
+        )}
       </aside>
     </>
   );

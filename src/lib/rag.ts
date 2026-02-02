@@ -5,11 +5,13 @@ import { fetchWikipediaSummary } from "@/lib/wiki";
 import { searchSimilar, type SimilarityResult } from "@/lib/vectordb";
 
 export interface RAGSource {
-  noteId: string;
-  noteTitle: string;
+  sourceId: string; // noteId or documentId
+  sourceType: 'note' | 'document';
+  sourceTitle: string; // note title or document filename
   chunkId: string;
   snippet: string;
   score: number;
+  pageNumber?: number; // for documents
 }
 
 export interface RAGAnswer {
@@ -94,7 +96,7 @@ function makeSnippet(content: string, keywords: string[], maxLen = 180) {
 }
 
 function collectNoteMatches(chunks: SimilarityResult[], keywords: string[]) {
-  const matches = new Map<string, { noteId: string; noteTitle: string; lines: string[]; topScore: number }>();
+  const matches = new Map<string, { sourceId: string; sourceTitle: string; sourceType: 'note' | 'document'; lines: string[]; topScore: number; pageNumber?: number }>();
 
   const sentenceSplit = (s: string) =>
     s
@@ -114,9 +116,16 @@ function collectNoteMatches(chunks: SimilarityResult[], keywords: string[]) {
     const hit = sents.find(hasKeyword);
     if (!hit) continue;
 
-    const existing = matches.get(c.noteId);
+    const existing = matches.get(c.sourceId);
     if (!existing) {
-      matches.set(c.noteId, { noteId: c.noteId, noteTitle: c.noteTitle, lines: [hit], topScore: c.score });
+      matches.set(c.sourceId, {
+        sourceId: c.sourceId,
+        sourceTitle: c.sourceTitle,
+        sourceType: c.sourceType,
+        lines: [hit],
+        topScore: c.score,
+        pageNumber: c.pageNumber
+      });
     } else {
       existing.topScore = Math.max(existing.topScore, c.score);
       if (existing.lines.length < 2 && !existing.lines.includes(hit)) {
@@ -128,14 +137,16 @@ function collectNoteMatches(chunks: SimilarityResult[], keywords: string[]) {
   return Array.from(matches.values()).sort((a, b) => b.topScore - a.topScore);
 }
 
-function formatMatchesSection(matches: Array<{ noteTitle: string; lines: string[] }>) {
+function formatMatchesSection(matches: Array<{ sourceTitle: string; sourceType: 'note' | 'document'; lines: string[]; pageNumber?: number }>) {
   if (!matches.length) return "";
   const top = matches.slice(0, 2);
   const lines: string[] = [];
-  lines.push("From your notes:");
+  lines.push("From your knowledge base:");
   for (const m of top) {
     for (const l of m.lines.slice(0, 1)) {
-      lines.push(`- \`${m.noteTitle}\`: ${l}`);
+      const icon = m.sourceType === 'document' ? '📄' : '📝';
+      const pageInfo = m.pageNumber ? ` (Page ${m.pageNumber})` : '';
+      lines.push(`- ${icon} \`${m.sourceTitle}${pageInfo}\`: ${l}`);
     }
   }
   return lines.join("\n");
@@ -159,19 +170,19 @@ function pickRelevantChunks(
   }
 ) {
   const picked: SimilarityResult[] = [];
-  const perNote = new Map<string, number>();
+  const perSource = new Map<string, number>();
 
   for (const c of chunks) {
     if (c.score < opts.minScore) continue;
 
-    const noteCount = perNote.get(c.noteId) ?? 0;
-    const notesUsed = perNote.size;
+    const sourceCount = perSource.get(c.sourceId) ?? 0;
+    const sourcesUsed = perSource.size;
 
-    if (noteCount === 0 && notesUsed >= opts.maxNotes) continue;
-    if (noteCount >= opts.maxChunksPerNote) continue;
+    if (sourceCount === 0 && sourcesUsed >= opts.maxNotes) continue;
+    if (sourceCount >= opts.maxChunksPerNote) continue;
 
     picked.push(c);
-    perNote.set(c.noteId, noteCount + 1);
+    perSource.set(c.sourceId, sourceCount + 1);
   }
 
   // If everything is below minScore, still return a few top chunks as a fallback.
@@ -185,24 +196,26 @@ function pickRelevantChunks(
 function buildContext(chunks: SimilarityResult[], maxChars: number) {
   let out = "";
 
-  // Group the retrieved chunks by note, so the model sees a document-level structure.
-  const byNote = new Map<string, { noteTitle: string; chunks: SimilarityResult[] }>();
+  // Group the retrieved chunks by source (note or document), so the model sees a document-level structure.
+  const bySource = new Map<string, { sourceTitle: string; sourceType: 'note' | 'document'; chunks: SimilarityResult[] }>();
   for (const c of chunks) {
-    const existing = byNote.get(c.noteId);
+    const existing = bySource.get(c.sourceId);
     if (existing) {
       existing.chunks.push(c);
     } else {
-      byNote.set(c.noteId, { noteTitle: c.noteTitle, chunks: [c] });
+      bySource.set(c.sourceId, { sourceTitle: c.sourceTitle, sourceType: c.sourceType, chunks: [c] });
     }
   }
 
-  for (const note of byNote.values()) {
-    const header = `=== NOTE: ${note.noteTitle} ===\n`;
+  for (const source of bySource.values()) {
+    const type = source.sourceType === 'document' ? 'DOCUMENT' : 'NOTE';
+    const header = `=== ${type}: ${source.sourceTitle} ===\n`;
     if ((out + header).length > maxChars) break;
     out += header;
 
-    for (const c of note.chunks) {
-      const block = `${c.content}\n\n---\n\n`;
+    for (const c of source.chunks) {
+      const pageInfo = c.pageNumber ? `[Page ${c.pageNumber}] ` : '';
+      const block = `${pageInfo}${c.content}\n\n---\n\n`;
       if ((out + block).length > maxChars) break;
       out += block;
     }
@@ -263,21 +276,23 @@ export async function askFromNotes(params: {
 
   const retrieved = hasNoteMatch
     ? pickRelevantChunks(retrievedAll, {
-        maxNotes,
-        maxChunksPerNote,
-        minScore,
-        fallbackChunks: 4,
-      })
+      maxNotes,
+      maxChunksPerNote,
+      minScore,
+      fallbackChunks: 4,
+    })
     : [];
 
   const context = hasNoteMatch ? buildContext(retrieved, maxContextChars) : "";
 
   const sources: RAGSource[] = retrieved.map((r) => ({
-    noteId: r.noteId,
-    noteTitle: r.noteTitle,
+    sourceId: r.sourceId,
+    sourceType: r.sourceType,
+    sourceTitle: r.sourceTitle,
     chunkId: r.chunkId,
     snippet: makeSnippet(r.content, keywords, 180),
     score: r.score,
+    pageNumber: r.pageNumber,
   }));
 
   const noteMatches = hasNoteMatch ? collectNoteMatches(retrievedAll, keywords) : [];
@@ -286,19 +301,30 @@ export async function askFromNotes(params: {
   const buildInlineCitation = () => {
     if (!hasNoteMatch) return "";
 
-    const noteScores = new Map<string, number>();
+    const sourceScores = new Map<string, { title: string; score: number; type: 'note' | 'document'; pageNumber?: number }>();
     for (const r of retrieved) {
-      const prev = noteScores.get(r.noteTitle) ?? -Infinity;
-      noteScores.set(r.noteTitle, Math.max(prev, r.score));
+      const prev = sourceScores.get(r.sourceTitle);
+      if (!prev || r.score > prev.score) {
+        sourceScores.set(r.sourceTitle, {
+          title: r.sourceTitle,
+          score: r.score,
+          type: r.sourceType,
+          pageNumber: r.pageNumber
+        });
+      }
     }
 
-    const noteTitles = Array.from(noteScores.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([t]) => t)
-      .slice(0, 2);
+    const sourceTitles = Array.from(sourceScores.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 2)
+      .map(s => {
+        const icon = s.type === 'document' ? '📄' : '📝';
+        const pageInfo = s.pageNumber ? ` (p.${s.pageNumber})` : '';
+        return `${icon} ${s.title}${pageInfo}`;
+      });
 
-    if (noteTitles.length === 0) return "";
-    return `\`${noteTitles.join(", ")}\``;
+    if (sourceTitles.length === 0) return "";
+    return `\`${sourceTitles.join(", ")}\``;
   };
 
   const formatFinal = (answerLineRaw: string, general: string[], used: "local" | "deepseek") => {
