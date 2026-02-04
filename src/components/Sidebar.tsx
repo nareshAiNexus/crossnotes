@@ -150,27 +150,8 @@ export default function Sidebar({
             </div>
             <span className="font-semibold text-sidebar-foreground">CrossNotes</span>
           </div>
-          <div class  Name="flex items-center gap-1">
+          <div className="flex items-center gap-1">
             <ThemeToggle />
-            {!isDesktopHidden && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden md:inline-flex text-sidebar-foreground"
-                onClick={onToggleDesktopHidden}
-                title="Hide sidebar"
-              >
-                <PanelLeftClose className="h-5 w-5" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden text-sidebar-foreground"
-              onClick={onMobileClose}
-            >
-              <X className="h-5 w-5" />
-            </Button>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2 truncate">
