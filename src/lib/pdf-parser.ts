@@ -1,9 +1,10 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFExtractionResult, PageText } from '@/types/document';
 
-// Configure PDF.js worker
-// Using CDN for the worker to avoid bundling issues
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker - use local worker file
+// Import the worker directly from node_modules
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 /**
  * Extract text from a PDF file

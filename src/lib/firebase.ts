@@ -1,6 +1,7 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getDatabase, Database } from 'firebase/database';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -23,12 +24,15 @@ export const isFirebaseConfigured = () => {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let database: Database | null = null;
+let storage: FirebaseStorage | null = null;
 
 if (isFirebaseConfigured()) {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   database = getDatabase(app);
+  storage = getStorage(app);
 }
 
-export { auth, database };
+export { auth, database, storage };
 export default app;
+

@@ -22,7 +22,7 @@ export default function Index() {
     try {
       const raw = window.localStorage.getItem(SIDEBAR_WIDTH_KEY);
       const parsed = raw ? Number(raw) : NaN;
-      return Number.isFinite(parsed) ? clamp(parsed, 240, 520) : 288;
+      return Number.isFinite(parsed) ? clamp(parsed, 280, 520) : 288;
     } catch {
       return 288;
     }
@@ -76,7 +76,7 @@ export default function Index() {
       const state = resizeStateRef.current;
       if (!state) return;
       const delta = ev.clientX - state.startX;
-      const next = clamp(state.startWidth + delta, 240, 520);
+      const next = clamp(state.startWidth + delta, 280, 520);
       setDesktopSidebarWidth(next);
     };
 

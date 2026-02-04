@@ -150,7 +150,7 @@ export default function Sidebar({
             </div>
             <span className="font-semibold text-sidebar-foreground">CrossNotes</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div class  Name="flex items-center gap-1">
             <ThemeToggle />
             {!isDesktopHidden && (
               <Button
@@ -179,10 +179,10 @@ export default function Sidebar({
       </div>
 
       {/* Actions */}
-      <div className="p-3 border-b border-sidebar-border flex gap-2 shrink-0">
+      <div className="p-3 border-b border-sidebar-border grid grid-cols-2 gap-2 shrink-0">
         <Dialog open={isNewNoteOpen} onOpenChange={setIsNewNoteOpen}>
           <DialogTrigger asChild>
-            <Button variant="secondary" size="sm" className="flex-1 text-xs">
+            <Button variant="secondary" size="sm" className="w-full text-xs">
               <Plus className="h-3 w-3 mr-1" />
               Note
             </Button>
@@ -218,7 +218,7 @@ export default function Sidebar({
 
         <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
           <DialogTrigger asChild>
-            <Button variant="secondary" size="sm" className="flex-1 text-xs">
+            <Button variant="secondary" size="sm" className="w-full text-xs">
               <Folder className="h-3 w-3 mr-1" />
               Folder
             </Button>
@@ -242,7 +242,9 @@ export default function Sidebar({
           </DialogContent>
         </Dialog>
 
-        <DocumentUpload folderId={null} />
+        <div className="col-span-2">
+          <DocumentUpload folderId={null} />
+        </div>
       </div>
 
       {/* Content */}

@@ -9,8 +9,10 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useDocuments } from '@/hooks/useDocuments';
-import { formatFileSize } from '@/lib/pdf-parser';
+import { formatFileSize, isValidFileSize } from '@/lib/pdf-parser';
+import { isSupportedDocumentFile, supportedAcceptString } from '@/lib/document-parser';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface DocumentUploadProps {
     folderId?: string | null;
@@ -24,9 +26,17 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
     const [isDragging, setIsDragging] = useState(false);
 
     const handleFileSelect = (file: File) => {
-        if (file.type === 'application/pdf') {
-            setSelectedFile(file);
+        if (!isSupportedDocumentFile(file)) {
+            toast.error('Unsupported file type. Supported: PDF, TXT/MD/CSV/JSON, DOCX, PPTX');
+            return;
         }
+
+        if (!isValidFileSize(file, 10)) {
+            toast.error('File size must be less than 10MB');
+            return;
+        }
+
+        setSelectedFile(file);
     };
 
     const handleDrop = useCallback((e: React.DragEvent) => {
@@ -75,17 +85,17 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
             <Button
                 variant="secondary"
                 size="sm"
-                className="flex-1 text-xs"
+                className="w-full text-xs"
                 onClick={() => setIsOpen(true)}
             >
                 <Upload className="h-3 w-3 mr-1" />
-                Upload PDF
+                Upload File
             </Button>
 
             <Dialog open={isOpen} onOpenChange={handleClose}>
                 <DialogContent className="bg-card border-border sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-foreground">Upload PDF Document</DialogTitle>
+                        <DialogTitle className="text-foreground">Upload Document</DialogTitle>
                     </DialogHeader>
 
                     {!isUploading ? (
@@ -105,7 +115,7 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
                             >
                                 <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                                 <p className="text-sm font-medium mb-1">
-                                    {selectedFile ? selectedFile.name : 'Drop PDF here or click to browse'}
+                                    {selectedFile ? selectedFile.name : 'Drop file here or click to browse'}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                     {selectedFile
@@ -117,7 +127,7 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
                             <input
                                 id="file-input"
                                 type="file"
-                                accept="application/pdf,.pdf"
+                                accept={supportedAcceptString()}
                                 className="hidden"
                                 onChange={(e) => {
                                     const file = e.target.files?.[0];
@@ -158,7 +168,7 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
                                     disabled={!selectedFile}
                                     className="flex-1"
                                 >
-                                    Upload & Index
+                                    Upload
                                 </Button>
                             </div>
                         </div>

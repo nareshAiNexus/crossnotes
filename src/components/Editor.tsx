@@ -63,6 +63,12 @@ export default function Editor({
     if (note) {
       setTitle(note.title);
       setContent(note.content);
+
+      // Auto-switch to editor mode if note is empty (newly created)
+      if (!note.content.trim()) {
+        setDesktopView('editor');
+        setMobileView('editor');
+      }
     } else {
       setTitle('');
       setContent('');

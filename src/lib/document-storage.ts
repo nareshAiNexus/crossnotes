@@ -113,11 +113,15 @@ export function subscribeToDocuments(
     const unsubscribe = onValue(docsRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            const documentsList = Object.entries(data).map(([id, doc]: [string, any]) => ({
-                id,
-                ...doc,
-            }));
-            callback(documentsList.sort((a, b) => b.uploadedAt - a.uploadedAt));
+            const documentsList = Object.entries(data).map(([id, doc]: [string, any]) => {
+                const uploadedAt = typeof doc?.uploadedAt === 'number' ? doc.uploadedAt : Number(doc?.uploadedAt);
+                return {
+                    id,
+                    ...doc,
+                    uploadedAt: Number.isFinite(uploadedAt) ? uploadedAt : 0,
+                };
+            });
+            callback(documentsList.sort((a, b) => (b.uploadedAt ?? 0) - (a.uploadedAt ?? 0)));
         } else {
             callback([]);
         }

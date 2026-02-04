@@ -11,7 +11,8 @@ import {
     subscribeToDocuments,
     generateDocumentId,
 } from '@/lib/document-storage';
-import { extractTextFromPDF, isValidPDF, isValidFileSize } from '@/lib/pdf-parser';
+import { isValidFileSize } from '@/lib/pdf-parser';
+import { detectFileType, extractTextFromFile, isSupportedDocumentFile } from '@/lib/document-parser';
 import { chunkDocument } from '@/lib/chunking';
 import { generateEmbedding } from '@/lib/embeddings';
 import { upsertChunks, deleteChunksBySource } from '@/lib/vectordb';
@@ -46,7 +47,7 @@ export function useDocuments() {
     }, [user]);
 
     /**
-     * Upload and index a PDF document
+     * Upload a document (store only, no indexing)
      */
     const uploadDocument = useCallback(
         async (file: File, folderId: string | null = null): Promise<string | null> => {
@@ -56,8 +57,8 @@ export function useDocuments() {
             }
 
             // Validate file
-            if (!isValidPDF(file)) {
-                toast.error('Please upload a valid PDF file');
+            if (!isSupportedDocumentFile(file)) {
+                toast.error('Unsupported file type. Supported: PDF, TXT/MD/CSV/JSON, DOCX, PPTX');
                 return null;
             }
 
@@ -72,120 +73,47 @@ export function useDocuments() {
                 // Stage 1: Upload file to IndexedDB
                 setUploadProgress({
                     stage: 'uploading',
-                    progress: 0,
+                    progress: 50,
                     message: 'Uploading file...',
                 });
 
                 await storePDFBlob(documentId, file);
 
-                // Create initial metadata
+                // Create metadata (no extraction yet)
+                const fileType = detectFileType(file);
+                if (!fileType) {
+                    throw new Error('Unsupported file type');
+                }
+
                 const document: Document = {
                     id: documentId,
                     userId: user.uid,
                     fileName: file.name,
                     fileSize: file.size,
                     mimeType: file.type,
+                    fileType,
                     uploadedAt: Date.now(),
                     folderId,
+                    storagePath: documentId,
                     storageRef: documentId,
-                    status: 'processing',
+                    indexed: false,
+                    status: 'uploading', // Changed from 'processing'
                 };
 
                 await saveDocumentMetadata(user.uid, document);
 
-                // Stage 2: Extract text from PDF
-                setUploadProgress({
-                    stage: 'extracting',
-                    progress: 20,
-                    message: 'Extracting text from PDF...',
-                });
-
-                const extractionResult = await extractTextFromPDF(file, (progress) => {
-                    setUploadProgress({
-                        stage: 'extracting',
-                        progress: 20 + Math.floor(progress * 0.3), // 20-50%
-                        message: `Extracting text... ${progress}%`,
-                    });
-                });
-
-                // Update metadata with page count
+                // Mark as uploaded (not indexed)
                 await updateDocumentMetadata(user.uid, documentId, {
-                    pageCount: extractionResult.pageCount,
-                });
-
-                // Stage 3: Chunk the document
-                setUploadProgress({
-                    stage: 'embedding',
-                    progress: 50,
-                    message: 'Chunking document...',
-                });
-
-                const chunks = chunkDocument({
-                    id: documentId,
-                    fileName: file.name,
-                    pages: extractionResult.pages,
-                });
-
-                if (chunks.length === 0) {
-                    throw new Error('No text could be extracted from the PDF');
-                }
-
-                // Stage 4: Generate embeddings
-                setUploadProgress({
-                    stage: 'embedding',
-                    progress: 60,
-                    message: `Generating embeddings for ${chunks.length} chunks...`,
-                });
-
-                const vectorChunks = [];
-                for (let i = 0; i < chunks.length; i++) {
-                    const chunk = chunks[i];
-                    const vector = await generateEmbedding(chunk.content);
-
-                    vectorChunks.push({
-                        chunkId: chunk.chunkId,
-                        userId: user.uid,
-                        sourceId: documentId,
-                        sourceType: 'document' as const,
-                        sourceTitle: file.name,
-                        chunkIndex: chunk.chunkIndex,
-                        content: chunk.content,
-                        vector,
-                        updatedAt: Date.now(),
-                        pageNumber: chunk.pageNumber,
-                        fileName: file.name,
-                    });
-
-                    // Update progress
-                    const progress = 60 + Math.floor(((i + 1) / chunks.length) * 30); // 60-90%
-                    setUploadProgress({
-                        stage: 'embedding',
-                        progress,
-                        message: `Embedding chunk ${i + 1}/${chunks.length}...`,
-                    });
-                }
-
-                // Stage 5: Store in vector database
-                setUploadProgress({
-                    stage: 'indexing',
-                    progress: 90,
-                    message: 'Indexing document...',
-                });
-
-                await upsertChunks(vectorChunks);
-
-                // Update document status
-                await updateDocumentMetadata(user.uid, documentId, {
-                    status: 'indexed',
+                    status: 'uploading', // User can view but not search yet
                 });
 
                 setUploadProgress({
                     stage: 'complete',
                     progress: 100,
-                    message: 'Document indexed successfully!',
+                    message: 'Document uploaded successfully!',
                 });
 
-                toast.success(`${file.name} indexed successfully!`);
+                toast.success(`${file.name} uploaded! You can view it now. Click "Index" in AI chat to make it searchable.`);
 
                 // Clear progress after a delay
                 setTimeout(() => setUploadProgress(null), 2000);
@@ -193,6 +121,13 @@ export function useDocuments() {
                 return documentId;
             } catch (error) {
                 console.error('Error uploading document:', error);
+
+                const msg = error instanceof Error ? error.message : String(error);
+                if (/permission[_ ]denied/i.test(msg) || /PERMISSION_DENIED/i.test(msg)) {
+                    toast.error(
+                        'Upload blocked by Firebase rules (PERMISSION_DENIED). Ensure RTDB rules allow writes to users/$uid/documents.'
+                    );
+                }
 
                 // Update document status to error
                 try {
@@ -210,6 +145,149 @@ export function useDocuments() {
             }
         },
         [user]
+    );
+
+    /**
+     * Index a document (extract text and create embeddings)
+     */
+    const indexDocument = useCallback(
+        async (documentId: string): Promise<boolean> => {
+            if (!user) {
+                toast.error('You must be logged in to index documents');
+                return false;
+            }
+
+            try {
+                // Get document metadata
+                const doc = documents.find(d => d.id === documentId);
+                if (!doc) {
+                    toast.error('Document not found');
+                    return false;
+                }
+
+                // Get the file blob
+                const blob = await getPDFBlob(documentId);
+                if (!blob) {
+                    toast.error('Could not retrieve document file');
+                    return false;
+                }
+
+                // Convert blob to File
+                const file = new File([blob], doc.fileName, { type: doc.mimeType });
+
+                // Update status to processing
+                await updateDocumentMetadata(user.uid, documentId, {
+                    status: 'processing',
+                });
+
+                // Stage 1: Extract text
+                setUploadProgress({
+                    stage: 'extracting',
+                    progress: 20,
+                    message: 'Extracting text...',
+                });
+
+                const { extraction: extractionResult } = await extractTextFromFile(file, (progress) => {
+                    setUploadProgress({
+                        stage: 'extracting',
+                        progress: 20 + Math.floor(progress * 0.3), // 20-50%
+                        message: `Extracting text... ${progress}%`,
+                    });
+                });
+
+                // Update metadata with page/slide count
+                await updateDocumentMetadata(user.uid, documentId, {
+                    pageCount: extractionResult.pageCount,
+                });
+
+                // Stage 2: Chunk the document
+                setUploadProgress({
+                    stage: 'embedding',
+                    progress: 50,
+                    message: 'Chunking document...',
+                });
+
+                const chunks = chunkDocument({
+                    id: documentId,
+                    fileName: doc.fileName,
+                    pages: extractionResult.pages,
+                });
+
+                if (chunks.length === 0) {
+                    throw new Error('No text could be extracted from the document');
+                }
+
+                // Stage 3: Generate embeddings
+                setUploadProgress({
+                    stage: 'embedding',
+                    progress: 60,
+                    message: `Generating embeddings for ${chunks.length} chunks...`,
+                });
+
+                const vectorChunks = [];
+                for (let i = 0; i < chunks.length; i++) {
+                    const chunk = chunks[i];
+                    const vector = await generateEmbedding(chunk.content);
+
+                    vectorChunks.push({
+                        chunkId: chunk.chunkId,
+                        userId: user.uid,
+                        sourceId: documentId,
+                        sourceType: 'document' as const,
+                        sourceTitle: doc.fileName,
+                        chunkIndex: chunk.chunkIndex,
+                        content: chunk.content,
+                        vector,
+                        updatedAt: Date.now(),
+                        pageNumber: chunk.pageNumber,
+                        fileName: doc.fileName,
+                    });
+
+                    // Update progress
+                    const progress = 60 + Math.floor(((i + 1) / chunks.length) * 30); // 60-90%
+                    setUploadProgress({
+                        stage: 'embedding',
+                        progress,
+                        message: `Embedding chunk ${i + 1}/${chunks.length}...`,
+                    });
+                }
+
+                // Stage 4: Store in vector database
+                setUploadProgress({
+                    stage: 'indexing',
+                    progress: 90,
+                    message: 'Indexing document...',
+                });
+
+                await upsertChunks(vectorChunks);
+
+                // Update document status
+                await updateDocumentMetadata(user.uid, documentId, {
+                    status: 'indexed',
+                    indexed: true,
+                });
+
+                setUploadProgress({
+                    stage: 'complete',
+                    progress: 100,
+                    message: 'Document indexed successfully!',
+                });
+
+                toast.success(`${doc.fileName} indexed successfully!`);
+
+                // Clear progress after a delay
+                setTimeout(() => setUploadProgress(null), 2000);
+
+                return true;
+            } catch (error) {
+                console.error('Error indexing document:', error);
+
+                toast.error(`Failed to index document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                setUploadProgress(null);
+                return false;
+            }
+        },
+        [user, documents]
     );
 
     /**
@@ -258,6 +336,7 @@ export function useDocuments() {
         loading,
         uploadProgress,
         uploadDocument,
+        indexDocument,
         deleteDocument,
         getDocumentBlob,
     };

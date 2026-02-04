@@ -1,0 +1,25 @@
+{
+    "rules": {
+        "users": {
+            "$userId": {
+                ".read": "$userId === auth.uid",
+                ".write": "$userId === auth.uid",
+                "notes": {
+                    "$noteId": {
+                        ".validate": "newData.hasChildren(['id', 'title', 'content', 'createdAt', 'updatedAt'])"
+                    }
+                },
+                "folders": {
+                    "$folderId": {
+                        ".validate": "newData.hasChildren(['id', 'name', 'createdAt'])"
+                    }
+                },
+                "documents": {
+                    "$documentId": {
+                        ".validate": "newData.hasChildren(['id', 'userId', 'fileName', 'fileSize', 'mimeType', 'fileType', 'uploadedAt', 'storagePath', 'indexed', 'status'])"
+                    }
+                }
+            }
+        }
+    }
+}
