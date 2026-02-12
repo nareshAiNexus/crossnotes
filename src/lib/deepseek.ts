@@ -45,7 +45,14 @@ function stripCodeFences(text: string) {
 }
 
 /**
- * Low-level OpenRouter chat helper.
+ * Sleep utility for retry delays
+ */
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Low-level OpenRouter chat helper with retry logic for rate limits.
  * Intentionally does NOT toast by default so it can be reused in non-UI flows (e.g. RAG chat).
  */
 export async function chatWithAI(params: {
@@ -53,6 +60,7 @@ export async function chatWithAI(params: {
     model?: string;
     temperature?: number;
     max_tokens?: number;
+    maxRetries?: number;
 }): Promise<string> {
     const apiKey = getOpenRouterApiKey();
 
@@ -60,37 +68,71 @@ export async function chatWithAI(params: {
         throw new Error('API key not configured');
     }
 
-    const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': window.location.origin,
-            'X-Title': 'CrossNotes'
-        },
-        body: JSON.stringify({
-            model: params.model ?? DEEPSEEK_MODEL,
-            messages: params.messages,
-            temperature: params.temperature ?? 0.2,
-            max_tokens: params.max_tokens ?? 2500
-        })
-    });
+    const maxRetries = params.maxRetries ?? 3;
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('OpenRouter API error:', errorData);
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    // Retry with exponential backoff
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(OPENROUTER_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'HTTP-Referer': window.location.origin,
+                    'X-Title': 'CrossNotes'
+                },
+                body: JSON.stringify({
+                    model: params.model ?? DEEPSEEK_MODEL,
+                    messages: params.messages,
+                    temperature: params.temperature ?? 0.2,
+                    max_tokens: params.max_tokens ?? 2500
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('OpenRouter API error:', errorData);
+
+                // Handle rate limiting (429)
+                if (response.status === 429) {
+                    if (attempt < maxRetries) {
+                        // Exponential backoff: 2s, 4s, 8s
+                        const delayMs = Math.pow(2, attempt + 1) * 1000;
+                        console.warn(`Rate limited (429). Retrying in ${delayMs / 1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+                        await sleep(delayMs);
+                        continue; // Retry
+                    } else {
+                        throw new Error('Rate limit exceeded. The free API tier has request limits. Please wait a few minutes and try again.');
+                    }
+                }
+
+                // Other errors - don't retry
+                throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+            }
+
+            const data: OpenRouterResponse = await response.json();
+
+            const content = data?.choices?.[0]?.message?.content;
+            const text = typeof content === 'string' ? content.trim() : '';
+            if (!text) {
+                throw new Error('Empty response from AI');
+            }
+
+            return stripCodeFences(text);
+
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+
+            // If it's not a rate limit error, don't retry
+            if (!lastError.message.includes('Rate limit')) {
+                throw lastError;
+            }
+        }
     }
 
-    const data: OpenRouterResponse = await response.json();
-
-    const content = data?.choices?.[0]?.message?.content;
-    const text = typeof content === 'string' ? content.trim() : '';
-    if (!text) {
-        throw new Error('Empty response from AI');
-    }
-
-    return stripCodeFences(text);
+    // If we exhausted all retries
+    throw lastError || new Error('Failed after retries');
 }
 
 /**
@@ -174,7 +216,12 @@ CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in code blocks. Do 
     } catch (error) {
         console.error('Error formatting notes:', error);
         if (error instanceof Error) {
-            toast.error(`Failed to format: ${error.message}`);
+            // Provide user-friendly message for rate limiting
+            if (error.message.includes('Rate limit')) {
+                toast.error('Rate limit exceeded. Please wait a few minutes before trying again. The free API has usage limits.');
+            } else {
+                toast.error(`Failed to format: ${error.message}`);
+            }
         } else {
             toast.error('Failed to format notes');
         }
