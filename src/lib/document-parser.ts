@@ -2,10 +2,12 @@ import JSZip from 'jszip';
 import type { PageText, PDFExtractionResult } from '@/types/document';
 import { extractTextFromPDF } from '@/lib/pdf-parser';
 
-export type SupportedFileType = 'pdf' | 'text' | 'docx' | 'pptx';
+export type SupportedFileType = 'pdf' | 'text' | 'docx' | 'pptx' | 'zip';
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const ZIP_MIME = 'application/zip';
+const ZIP_X_MIME = 'application/x-zip-compressed';
 
 function ext(name: string): string {
   const i = name.lastIndexOf('.');
@@ -18,6 +20,7 @@ export function detectFileType(file: File): SupportedFileType | null {
   if (file.type === 'application/pdf' || e === 'pdf') return 'pdf';
   if (file.type === DOCX_MIME || e === 'docx') return 'docx';
   if (file.type === PPTX_MIME || e === 'pptx') return 'pptx';
+  if (file.type === ZIP_MIME || file.type === ZIP_X_MIME || e === 'zip') return 'zip';
 
   // Text-like files (many browsers use application/octet-stream for unknown extensions)
   if (file.type.startsWith('text/')) return 'text';
@@ -149,6 +152,18 @@ export async function extractTextFromFile(
     return { fileType, extraction };
   }
 
+  if (fileType === 'zip') {
+    // No text extraction for ZIP files yet
+    return {
+      fileType,
+      extraction: {
+        text: '',
+        pageCount: 0,
+        pages: []
+      }
+    };
+  }
+
   const extraction = await extractTextFromPlainText(file);
   return { fileType, extraction };
 }
@@ -173,5 +188,6 @@ export function supportedAcceptString(): string {
     '.xml',
     '.ini',
     '.cfg',
+    '.zip',
   ].join(',');
 }

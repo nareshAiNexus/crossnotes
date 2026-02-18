@@ -5,6 +5,9 @@ import {
     storePDFBlob,
     getPDFBlob,
     deletePDFBlob,
+    uploadFileToFirebase,
+    getFileFromFirebase,
+    deleteFileFromFirebase,
     saveDocumentMetadata,
     updateDocumentMetadata,
     deleteDocumentMetadata,
@@ -50,7 +53,11 @@ export function useDocuments() {
      * Upload a document (store only, no indexing)
      */
     const uploadDocument = useCallback(
-        async (file: File, folderId: string | null = null): Promise<string | null> => {
+        async (
+            file: File,
+            folderId: string | null = null,
+            storageMode: 'local' | 'cloud' = 'local'
+        ): Promise<string | null> => {
             if (!user) {
                 toast.error('You must be logged in to upload documents');
                 return null;
@@ -70,16 +77,20 @@ export function useDocuments() {
             const documentId = generateDocumentId(user.uid);
 
             try {
-                // Stage 1: Upload file to IndexedDB
+                // Stage 1: Upload file
                 setUploadProgress({
                     stage: 'uploading',
-                    progress: 50,
-                    message: 'Uploading file...',
+                    progress: 30,
+                    message: `Uploading file to ${storageMode === 'cloud' ? 'Cloud' : 'Local Storage'}...`,
                 });
 
-                await storePDFBlob(documentId, file);
+                if (storageMode === 'cloud') {
+                    await uploadFileToFirebase(user.uid, documentId, file, file.name);
+                } else {
+                    await storePDFBlob(documentId, file);
+                }
 
-                // Create metadata (no extraction yet)
+                // Create metadata 
                 const fileType = detectFileType(file);
                 if (!fileType) {
                     throw new Error('Unsupported file type');
@@ -97,14 +108,14 @@ export function useDocuments() {
                     storagePath: documentId,
                     storageRef: documentId,
                     indexed: false,
-                    status: 'uploading', // Changed from 'processing'
+                    status: 'uploading',
+                    storageType: storageMode === 'cloud' ? 'firebase' : 'local', // New field
                 };
 
                 await saveDocumentMetadata(user.uid, document);
 
-                // Mark as uploaded (not indexed)
                 await updateDocumentMetadata(user.uid, documentId, {
-                    status: 'uploading', // User can view but not search yet
+                    status: 'uploading',
                 });
 
                 setUploadProgress({
@@ -113,9 +124,8 @@ export function useDocuments() {
                     message: 'Document uploaded successfully!',
                 });
 
-                toast.success(`${file.name} uploaded! You can view it now. Click "Index" in AI chat to make it searchable.`);
+                toast.success(`${file.name} uploaded to ${storageMode === 'cloud' ? 'Cloud' : 'Local Storage'}!`);
 
-                // Clear progress after a delay
                 setTimeout(() => setUploadProgress(null), 2000);
 
                 return documentId;
@@ -125,11 +135,10 @@ export function useDocuments() {
                 const msg = error instanceof Error ? error.message : String(error);
                 if (/permission[_ ]denied/i.test(msg) || /PERMISSION_DENIED/i.test(msg)) {
                     toast.error(
-                        'Upload blocked by Firebase rules (PERMISSION_DENIED). Ensure RTDB rules allow writes to users/$uid/documents.'
+                        'Upload blocked by Firebase rules.'
                     );
                 }
 
-                // Update document status to error
                 try {
                     await updateDocumentMetadata(user.uid, documentId, {
                         status: 'error',
@@ -158,29 +167,29 @@ export function useDocuments() {
             }
 
             try {
-                // Get document metadata
                 const doc = documents.find(d => d.id === documentId);
                 if (!doc) {
                     toast.error('Document not found');
                     return false;
                 }
 
-                // Get the file blob
-                const blob = await getPDFBlob(documentId);
+                // Retrieve Blob based on storage type
+                let blob: Blob | null = null;
+                if (doc.storageType === 'firebase') {
+                    blob = await getFileFromFirebase(user.uid, documentId, doc.fileName);
+                } else {
+                    blob = await getPDFBlob(documentId);
+                }
+
                 if (!blob) {
-                    toast.error('Could not retrieve document file');
+                    toast.error('Could not retrieve document file. It might typically happen if you switched devices without Cloud Sync.');
                     return false;
                 }
 
-                // Convert blob to File
                 const file = new File([blob], doc.fileName, { type: doc.mimeType });
 
-                // Update status to processing
-                await updateDocumentMetadata(user.uid, documentId, {
-                    status: 'processing',
-                });
+                await updateDocumentMetadata(user.uid, documentId, { status: 'processing' });
 
-                // Stage 1: Extract text
                 setUploadProgress({
                     stage: 'extracting',
                     progress: 20,
@@ -190,17 +199,13 @@ export function useDocuments() {
                 const { extraction: extractionResult } = await extractTextFromFile(file, (progress) => {
                     setUploadProgress({
                         stage: 'extracting',
-                        progress: 20 + Math.floor(progress * 0.3), // 20-50%
+                        progress: 20 + Math.floor(progress * 0.3),
                         message: `Extracting text... ${progress}%`,
                     });
                 });
 
-                // Update metadata with page/slide count
-                await updateDocumentMetadata(user.uid, documentId, {
-                    pageCount: extractionResult.pageCount,
-                });
+                await updateDocumentMetadata(user.uid, documentId, { pageCount: extractionResult.pageCount });
 
-                // Stage 2: Chunk the document
                 setUploadProgress({
                     stage: 'embedding',
                     progress: 50,
@@ -217,7 +222,6 @@ export function useDocuments() {
                     throw new Error('No text could be extracted from the document');
                 }
 
-                // Stage 3: Generate embeddings
                 setUploadProgress({
                     stage: 'embedding',
                     progress: 60,
@@ -243,8 +247,7 @@ export function useDocuments() {
                         fileName: doc.fileName,
                     });
 
-                    // Update progress
-                    const progress = 60 + Math.floor(((i + 1) / chunks.length) * 30); // 60-90%
+                    const progress = 60 + Math.floor(((i + 1) / chunks.length) * 30);
                     setUploadProgress({
                         stage: 'embedding',
                         progress,
@@ -252,7 +255,6 @@ export function useDocuments() {
                     });
                 }
 
-                // Stage 4: Store in vector database
                 setUploadProgress({
                     stage: 'indexing',
                     progress: 90,
@@ -261,7 +263,6 @@ export function useDocuments() {
 
                 await upsertChunks(vectorChunks);
 
-                // Update document status
                 await updateDocumentMetadata(user.uid, documentId, {
                     status: 'indexed',
                     indexed: true,
@@ -274,14 +275,11 @@ export function useDocuments() {
                 });
 
                 toast.success(`${doc.fileName} indexed successfully!`);
-
-                // Clear progress after a delay
                 setTimeout(() => setUploadProgress(null), 2000);
 
                 return true;
             } catch (error) {
                 console.error('Error indexing document:', error);
-
                 toast.error(`Failed to index document: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 setUploadProgress(null);
                 return false;
@@ -298,13 +296,17 @@ export function useDocuments() {
             if (!user) return;
 
             try {
-                // Delete from vector database
+                // Find document to check storage type
+                const doc = documents.find(d => d.id === documentId);
+
                 await deleteChunksBySource(user.uid, documentId);
 
-                // Delete PDF blob from IndexedDB
-                await deletePDFBlob(documentId);
+                if (doc?.storageType === 'firebase') {
+                    await deleteFileFromFirebase(user.uid, documentId, doc.fileName);
+                } else {
+                    await deletePDFBlob(documentId);
+                }
 
-                // Delete metadata from Firebase
                 await deleteDocumentMetadata(user.uid, documentId);
 
                 toast.success('Document deleted');
@@ -313,7 +315,7 @@ export function useDocuments() {
                 toast.error('Failed to delete document');
             }
         },
-        [user]
+        [user, documents]
     );
 
     /**
@@ -321,14 +323,26 @@ export function useDocuments() {
      */
     const getDocumentBlob = useCallback(
         async (documentId: string): Promise<Blob | null> => {
+            const doc = documents.find(d => d.id === documentId);
+            if (!doc) {
+                // Try local first fallback
+                const localBlob = await getPDFBlob(documentId);
+                if (localBlob) return localBlob;
+                return null;
+            }
+
             try {
-                return await getPDFBlob(documentId);
+                if (doc.storageType === 'firebase' && user) {
+                    return await getFileFromFirebase(user.uid, documentId, doc.fileName);
+                } else {
+                    return await getPDFBlob(documentId);
+                }
             } catch (error) {
                 console.error('Error getting document blob:', error);
                 return null;
             }
         },
-        []
+        [documents, user]
     );
 
     return {

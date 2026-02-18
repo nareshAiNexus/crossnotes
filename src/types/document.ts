@@ -7,7 +7,7 @@ export interface Document {
     /**
      * High-level type used for parsing/indexing. Kept to match existing Firebase rules.
      */
-    fileType: 'pdf' | 'text' | 'docx' | 'pptx';
+    fileType: 'pdf' | 'text' | 'docx' | 'pptx' | 'zip';
     uploadedAt: number;
     pageCount?: number;
     folderId: string | null;
@@ -15,10 +15,9 @@ export interface Document {
     /**
      * Storage path kept to match existing Firebase rules. In this app we store blobs in IndexedDB.
      */
-    storagePath: string;
-
-    // Storage reference (IndexedDB key for the blob)
-    storageRef: string;
+    storagePath: string; // ID in IndexedDB or Path in Firebase Storage
+    storageRef?: string; // Reference for deletion
+    storageType?: 'local' | 'firebase'; // New field to track storage location
 
     /**
      * Convenience boolean used by rules/UI.

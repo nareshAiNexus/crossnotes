@@ -285,7 +285,15 @@ export default function KnowledgeBaseChat() {
                                 );
                               }
                               return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
-                            }
+                            },
+                            img: (props) => (
+                              <img
+                                {...props}
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                                className="rounded-md border border-border my-2 max-w-full"
+                              />
+                            )
                           }}
                         />
                       </div>

@@ -363,9 +363,8 @@ export async function askFromNotes(params: {
       `Question:\n${params.question}\n\n` +
       `Note excerpts:\n${context}`;
 
-    // Only use local LLM if explicitly preferred AND Gemini is NOT configured.
-    // This prevents GPU crashes when the user wants to use Gemini.
-    if (params.preferLocalLLM && isWebGPUAvailable() && !isGeminiConfigured()) {
+    // Use local LLM if explicitly preferred (Privacy Mode) OR if Gemini is not configured.
+    if ((params.preferLocalLLM || !isGeminiConfigured()) && isWebGPUAvailable()) {
       const raw = await generateLocalAnswer({
         system,
         user: userPrompt,

@@ -1,7 +1,81 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { ref, set, push, remove, onValue, update } from 'firebase/database';
-import { database, isFirebaseConfigured } from './firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { database, storage, isFirebaseConfigured } from './firebase';
 import type { Document } from '@/types/document';
+
+// ... (existing interface and initDocumentDB)
+
+// ... (existing IndexedDB functions: storePDFBlob, getPDFBlob, deletePDFBlob)
+
+/**
+ * Upload file blob to Firebase Storage
+ */
+export async function uploadFileToFirebase(userId: string, documentId: string, blob: Blob, fileName: string): Promise<string> {
+    if (!storage || !isFirebaseConfigured()) {
+        throw new Error('Firebase Storage is not configured');
+    }
+
+    const fileRef = storageRef(storage, `users/${userId}/documents/${documentId}_${fileName}`);
+    await uploadBytes(fileRef, blob);
+    return await getDownloadURL(fileRef);
+}
+
+/**
+ * Get file blob from Firebase Storage
+ */
+export async function getFileFromFirebase(userId: string, documentId: string, fileName: string): Promise<Blob | null> {
+    if (!storage || !isFirebaseConfigured()) {
+        throw new Error('Firebase Storage is not configured');
+    }
+
+    try {
+        const fileRef = storageRef(storage, `users/${userId}/documents/${documentId}_${fileName}`);
+        const url = await getDownloadURL(fileRef);
+        const response = await fetch(url);
+        return await response.blob();
+    } catch (error) {
+        console.error('Error fetching file from Firebase:', error);
+        // Fallback for legacy PDF-only uploads (try without filename suffix logic or just the old .pdf path)
+        try {
+            const legacyRef = storageRef(storage, `users/${userId}/documents/${documentId}.pdf`);
+            const url = await getDownloadURL(legacyRef);
+            const response = await fetch(url);
+            return await response.blob();
+        } catch (legacyError) {
+            return null;
+        }
+    }
+}
+
+/**
+ * Delete file from Firebase Storage
+ */
+export async function deleteFileFromFirebase(userId: string, documentId: string, fileName: string): Promise<void> {
+    if (!storage || !isFirebaseConfigured()) {
+        throw new Error('Firebase Storage is not configured');
+    }
+
+    try {
+        const fileRef = storageRef(storage, `users/${userId}/documents/${documentId}_${fileName}`);
+        await deleteObject(fileRef);
+    } catch (error: any) {
+        // Try deleting legacy path as well just in case
+        try {
+            const legacyRef = storageRef(storage, `users/${userId}/documents/${documentId}.pdf`);
+            await deleteObject(legacyRef);
+        } catch (e) {
+            // Ignore
+        }
+
+        // Ignore if file doesn't exist
+        if (error.code !== 'storage/object-not-found') {
+            throw error;
+        }
+    }
+}
+
+// ... (existing metadata functions)
 
 interface DocumentStorageSchema extends DBSchema {
     documents: {

@@ -199,6 +199,7 @@ Rules:
 - Add logically relevant detailed image references using markdown syntax: ![Alt Text](https://image.pollinations.ai/prompt/<description>?width=800&height=450&nologo=true).
   - Example: ![Cyberpunk City](https://image.pollinations.ai/prompt/cyberpunk%20city%20neon%20lights?width=800&height=450&nologo=true)
   - Ensure the prompt in the URL is URL-encoded and descriptive.
+  - STRICTLY FORBIDDEN: Do NOT use source.unsplash.com or any other image service. ONE AND ONLY use pollinations.ai.
 - Use - for bullet lists and 1. for numbered lists.
 - Use > for important callouts or quotes.
 - Use --- for section separators.

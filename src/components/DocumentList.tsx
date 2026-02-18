@@ -1,4 +1,4 @@
-import { FileText, Trash2, Download, AlertCircle, Loader2, CheckCircle, Eye, Database } from 'lucide-react';
+import { FileText, Trash2, Download, AlertCircle, Loader2, CheckCircle, Eye, Database, Cloud, HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDocuments } from '@/hooks/useDocuments';
 import type { Document } from '@/types/document';
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import PDFViewer from './PDFViewer';
+import PPTXViewer from './PPTXViewer';
 import { toast } from 'sonner';
 
 interface DocumentListProps {
@@ -75,6 +76,12 @@ export default function DocumentList({ onSelectDocument, selectedDocumentId }: D
         }
     };
 
+    const isViewable = (doc: Document) => {
+        return doc.mimeType === 'application/pdf' ||
+            doc.mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+            doc.mimeType === 'application/vnd.ms-powerpoint';
+    };
+
     if (documents.length === 0) {
         return (
             <div className="px-3 py-4 text-center text-muted-foreground">
@@ -125,7 +132,13 @@ export default function DocumentList({ onSelectDocument, selectedDocumentId }: D
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                                {doc.storageType === 'firebase' ? (
+                                    <span title="Full cloud sync"><Cloud className="h-3 w-3 text-blue-500" /></span>
+                                ) : (
+                                    <span title="Local storage only"><HardDrive className="h-3 w-3 text-gray-500" /></span>
+                                )}
+                                <span>•</span>
                                 {(() => {
                                     const uploadedAt = typeof doc.uploadedAt === 'number' ? doc.uploadedAt : Number(doc.uploadedAt);
                                     const d = new Date(uploadedAt);
@@ -135,7 +148,7 @@ export default function DocumentList({ onSelectDocument, selectedDocumentId }: D
                         </div>
 
                         <div className="flex gap-1 shrink-0">
-                            {doc.mimeType === 'application/pdf' && (
+                            {isViewable(doc) && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -144,12 +157,12 @@ export default function DocumentList({ onSelectDocument, selectedDocumentId }: D
                                         e.stopPropagation();
                                         setViewingDocument(doc);
                                     }}
-                                    title="View PDF"
+                                    title="View Document"
                                 >
-                                    <Eye className="h-3 w-3" />
+                                    <Eye className="h-3 w-3 text-blue-500" />
                                 </Button>
                             )}
-                            {!doc.indexed && doc.status !== 'processing' && doc.status !== 'error' && (
+                            {!doc.indexed && doc.status !== 'processing' && doc.status !== 'error' && doc.fileType !== 'zip' && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -160,7 +173,7 @@ export default function DocumentList({ onSelectDocument, selectedDocumentId }: D
                                     }}
                                     title="Index for search"
                                 >
-                                    <Database className="h-3 w-3 text-blue-500" />
+                                    <Database className="h-3 w-3 text-orange-500" />
                                 </Button>
                             )}
                             <Button
@@ -192,13 +205,24 @@ export default function DocumentList({ onSelectDocument, selectedDocumentId }: D
                 ))}
             </div>
 
-            {viewingDocument && (
+            {viewingDocument && viewingDocument.mimeType === 'application/pdf' && (
                 <PDFViewer
                     document={viewingDocument}
-                    isOpen={!!viewingDocument}
+                    isOpen={true}
                     onClose={() => setViewingDocument(null)}
                 />
             )}
+
+            {viewingDocument && (
+                viewingDocument.mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+                viewingDocument.mimeType === 'application/vnd.ms-powerpoint'
+            ) && (
+                    <PPTXViewer
+                        document={viewingDocument}
+                        isOpen={true}
+                        onClose={() => setViewingDocument(null)}
+                    />
+                )}
         </>
     );
 }

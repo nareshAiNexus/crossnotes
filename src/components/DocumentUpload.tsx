@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, X, FileText, Loader2 } from 'lucide-react';
+import { Upload, X, FileText, Loader2, Cloud, HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -13,6 +13,8 @@ import { formatFileSize, isValidFileSize } from '@/lib/pdf-parser';
 import { isSupportedDocumentFile, supportedAcceptString } from '@/lib/document-parser';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface DocumentUploadProps {
     folderId?: string | null;
@@ -24,10 +26,11 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
     const [isOpen, setIsOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [storageMode, setStorageMode] = useState<'local' | 'cloud'>('local');
 
     const handleFileSelect = (file: File) => {
         if (!isSupportedDocumentFile(file)) {
-            toast.error('Unsupported file type. Supported: PDF, TXT/MD/CSV/JSON, DOCX, PPTX');
+            toast.error('Unsupported file type. Supported: PDF, TXT/MD/CSV/JSON, DOCX, PPTX, ZIP');
             return;
         }
 
@@ -62,7 +65,7 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
     const handleUpload = async () => {
         if (!selectedFile) return;
 
-        const result = await uploadDocument(selectedFile, folderId || null);
+        const result = await uploadDocument(selectedFile, folderId || null, storageMode);
 
         if (result) {
             setSelectedFile(null);
@@ -134,6 +137,32 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
                                     if (file) handleFileSelect(file);
                                 }}
                             />
+
+                            {/* Storage Mode Toggle */}
+                            <div className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
+                                <div className="flex items-center space-x-2">
+                                    {storageMode === 'cloud' ? (
+                                        <Cloud className="h-4 w-4 text-blue-500" />
+                                    ) : (
+                                        <HardDrive className="h-4 w-4 text-gray-500" />
+                                    )}
+                                    <div className="flex flex-col">
+                                        <Label htmlFor="storage-mode" className="text-sm font-medium cursor-pointer">
+                                            {storageMode === 'cloud' ? 'Cloud Storage' : 'Local Storage'}
+                                        </Label>
+                                        <span className="text-xs text-muted-foreground">
+                                            {storageMode === 'cloud'
+                                                ? 'Synced across devices (Firebase)'
+                                                : 'Private, on this device only'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <Switch
+                                    id="storage-mode"
+                                    checked={storageMode === 'cloud'}
+                                    onCheckedChange={(checked) => setStorageMode(checked ? 'cloud' : 'local')}
+                                />
+                            </div>
 
                             {selectedFile && (
                                 <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">

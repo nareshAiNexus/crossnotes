@@ -387,7 +387,22 @@ export default function Editor({
             <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full">
               <div className="w-full max-w-3xl px-8 py-6">
                 <article className="mx-auto prose lg:prose-lg max-w-none text-left">
-                  <MDEditor.Markdown source={content} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} />
+                  <MDEditor.Markdown
+                    source={content}
+                    remarkPlugins={remarkPlugins}
+                    rehypePlugins={rehypePlugins}
+                    components={{
+                      img: (props) => (
+                        <img
+                          {...props}
+                          referrerPolicy="no-referrer"
+                          loading="lazy"
+                          alt={props.alt || 'Image'}
+                          className="rounded-lg shadow-md border border-border mx-auto"
+                        />
+                      )
+                    }}
+                  />
                 </article>
               </div>
             </div>
@@ -401,7 +416,21 @@ export default function Editor({
                 height="100%"
                 visibleDragbar={false}
                 hideToolbar={false}
-                previewOptions={{ remarkPlugins, rehypePlugins }}
+                previewOptions={{
+                  remarkPlugins,
+                  rehypePlugins,
+                  components: {
+                    img: (props: any) => (
+                      <img
+                        {...props}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        alt={props.alt || 'Image'}
+                        className="rounded-lg shadow-md border border-border mx-auto max-w-full"
+                      />
+                    )
+                  }
+                }}
                 className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-12"
               />
             </div>
@@ -414,7 +443,22 @@ export default function Editor({
             <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full h-full">
               <div className="w-full max-w-2xl px-5 py-6">
                 <article className="mx-auto prose prose-base sm:prose-lg text-left dark:prose-invert">
-                  <MDEditor.Markdown source={content || '*No content yet. Switch to edit mode to start writing.*'} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} />
+                  <MDEditor.Markdown
+                    source={content || '*No content yet. Switch to edit mode to start writing.*'}
+                    remarkPlugins={remarkPlugins}
+                    rehypePlugins={rehypePlugins}
+                    components={{
+                      img: (props) => (
+                        <img
+                          {...props}
+                          referrerPolicy="no-referrer"
+                          loading="lazy"
+                          alt={props.alt || 'Image'}
+                          className="rounded-lg shadow-md border border-border mx-auto"
+                        />
+                      )
+                    }}
+                  />
                 </article>
               </div>
             </div>
@@ -427,7 +471,21 @@ export default function Editor({
                 height="100%"
                 visibleDragbar={false}
                 hideToolbar={false}
-                previewOptions={{ remarkPlugins, rehypePlugins }}
+                previewOptions={{
+                  remarkPlugins,
+                  rehypePlugins,
+                  components: {
+                    img: (props: any) => (
+                      <img
+                        {...props}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        alt={props.alt || 'Image'}
+                        className="rounded-lg shadow-md border border-border mx-auto max-w-full"
+                      />
+                    )
+                  }
+                }}
                 className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-4 [&_.cm-editor]:!pr-4 [&_.cm-editor]:!text-base [&_.cm-editor]:!leading-relaxed [&_.w-md-editor-toolbar]:!px-2 [&_.w-md-editor-toolbar]:!py-2 [&_.w-md-editor-preview]:!hidden"
               />
             </div>
