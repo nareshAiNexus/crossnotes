@@ -297,16 +297,16 @@ export async function askFromNotes(params: {
   }));
 
   const noteMatches = hasNoteMatch ? collectNoteMatches(retrievedAll, keywords) : [];
-  const matchesSection = formatMatchesSection(noteMatches);
 
   const buildInlineCitation = () => {
     if (!hasNoteMatch) return "";
 
-    const sourceScores = new Map<string, { title: string; score: number; type: 'note' | 'document'; pageNumber?: number }>();
+    const sourceScores = new Map<string, { id: string; title: string; score: number; type: 'note' | 'document'; pageNumber?: number }>();
     for (const r of retrieved) {
       const prev = sourceScores.get(r.sourceTitle);
       if (!prev || r.score > prev.score) {
         sourceScores.set(r.sourceTitle, {
+          id: r.sourceId,
           title: r.sourceTitle,
           score: r.score,
           type: r.sourceType,
@@ -315,17 +315,18 @@ export async function askFromNotes(params: {
       }
     }
 
-    const sourceTitles = Array.from(sourceScores.values())
+    const citations = Array.from(sourceScores.values())
       .sort((a, b) => b.score - a.score)
-      .slice(0, 2)
+      .slice(0, 3)
       .map(s => {
         const icon = s.type === 'document' ? '📄' : '📝';
         const pageInfo = s.pageNumber ? ` (p.${s.pageNumber})` : '';
-        return `${icon} ${s.title}${pageInfo}`;
+        // Markdown link format: [Title](/note/id)
+        return `[${icon} ${s.title}${pageInfo}](/note/${s.id})`;
       });
 
-    if (sourceTitles.length === 0) return "";
-    return `\`${sourceTitles.join(", ")}\``;
+    if (citations.length === 0) return "";
+    return `References: ${citations.join(", ")}`;
   };
 
   const formatFinal = (answerLineRaw: string, general: string[], used: "local" | "gemini" | "deepseek") => {
@@ -333,14 +334,16 @@ export async function askFromNotes(params: {
     const citation = buildInlineCitation();
 
     const parts: string[] = [];
-    parts.push(citation ? `${answerLine} ${citation}` : answerLine);
+    parts.push(answerLine);
+
     if (general.length) {
       parts.push("");
       parts.push(general.join("\n"));
     }
-    if (matchesSection) {
+
+    if (citation) {
       parts.push("");
-      parts.push(matchesSection);
+      parts.push(citation);
     }
 
     return { answer: parts.join("\n"), used };
@@ -349,19 +352,16 @@ export async function askFromNotes(params: {
   // If we have note context, answer using notes (but allow general knowledge too).
   if (hasNoteMatch && context) {
     const system =
-      "You are an expert AI assistant. Your primary goal is to provide accurate, helpful, and concise answers based on the provided notes. " +
-      "If the notes contain the answer, prioritize that information. " +
-      "If the notes are insufficient, use your general knowledge to supplement but clearly distinguish or integrate it smoothly. " +
-      "If you don't know the answer and it's not in the notes, say so. " +
+      "You are a helpful expert assistant. Answer the user's question concisely based on the notes. " +
+      "If the answer is in the notes, use it. If not, briefly use general knowledge. " +
       "Output format:\n" +
-      "- Line 1: A direct, concise final answer (1-2 sentences).\n" +
-      "- Following lines: 2-3 bullet points or short lines of additional context or general information if helpful.\n" +
-      "CRITICAL: Do NOT mention 'the notes', 'sources', 'excerpts', or 'citations' in your response text itself. " +
-      "I will handle the citations separately.";
+      "- Line 1: Direct, concise answer.\n" +
+      "- Following lines: Bullet points with key details.\n" +
+      "CRITICAL: Do not mention 'citations' in the text.";
 
     const userPrompt =
       `Question:\n${params.question}\n\n` +
-      `Note excerpts (may be partial):\n${context}`;
+      `Note excerpts:\n${context}`;
 
     // Only use local LLM if explicitly preferred AND Gemini is NOT configured.
     // This prevents GPU crashes when the user wants to use Gemini.
@@ -384,7 +384,7 @@ export async function askFromNotes(params: {
         system,
         user: userPrompt,
         temperature: 0.1,
-        max_tokens: 1024,
+        max_tokens: 800,
       });
 
       const parsed = parseAnswerLines(raw);
@@ -425,7 +425,7 @@ export async function askFromNotes(params: {
       return { ...formatFinal(answerLine, lines, "local"), sources, used: "local" };
     }
 
-    const fallback = matchesSection || "I couldn't find anything relevant in your notes for that question.";
+    const fallback = "I couldn't find anything relevant in your notes for that question.";
     return { answer: fallback, sources, used: "local" };
   }
 

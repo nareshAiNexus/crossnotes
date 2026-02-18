@@ -3,7 +3,7 @@ import MDEditor from '@uiw/react-md-editor';
 import { Input } from '@/components/ui/input';
 import { useNotes, type Note } from '@/hooks/useNotes';
 import { useTheme } from '@/hooks/useTheme';
-import { Menu, Save, FileText, Sparkles, Edit3, Eye, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
+import { Menu, Save, FileText, Sparkles, Edit3, Eye, PanelLeftOpen, PanelLeftClose, Zap, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import debounce from '@/lib/debounce';
@@ -12,6 +12,12 @@ import { isGeminiConfigured } from '@/lib/gemini';
 import { makeRehypeHighlighter } from '@/lib/rehype-highlight';
 import { remarkSoftbreaksToBreaks } from '@/lib/remark-softbreaks';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface EditorProps {
   noteId: string | null;
@@ -105,7 +111,7 @@ export default function Editor({
 
   const isAIConfigured = isGeminiConfigured();
 
-  const handleAIFormat = async () => {
+  const handleAIFormat = async (mode: 'format' | 'enhance') => {
     if (!isAIConfigured) {
       toast.error('AI formatting is not configured. Add the API key to your .env and restart the dev server.');
       return;
@@ -118,8 +124,9 @@ export default function Editor({
 
     setIsFormatting(true);
     try {
-      toast.info('Formatting with AI...');
-      const formattedContent = await formatNotesWithAI(content);
+      const label = mode === 'format' ? 'Quick Formatting...' : 'Enhancing with AI...';
+      toast.info(label);
+      const formattedContent = await formatNotesWithAI(content, mode);
       setContent(formattedContent);
 
       // Save the formatted content
@@ -127,7 +134,7 @@ export default function Editor({
         await updateNote(noteId, { content: formattedContent });
       }
 
-      toast.success('Note formatted successfully!');
+      toast.success(mode === 'format' ? 'Formatted successfully!' : 'Enhanced successfully!');
     } catch (error) {
       console.error('Failed to format note:', error);
       // Error toast is already shown in formatNotesWithAI
@@ -215,28 +222,42 @@ export default function Editor({
         <div className="flex-1" />
 
         {/* Mobile AI Format Button - icon only - always visible */}
-        <Button
-          onClick={handleAIFormat}
-          disabled={!isAIConfigured || isFormatting || !content.trim()}
-          className={cn(
-            "h-10 w-10",
-            "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
-            "text-white shadow-lg",
-            "transition-all duration-200",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
-          size="icon"
-          title={
-            !isAIConfigured
-              ? 'Configure AI formatting (set VITE_GEMINI_API_KEY)'
-              : 'Format with AI'
-          }
-        >
-          <Sparkles className={cn(
-            "h-5 w-5",
-            isFormatting && "animate-spin"
-          )} />
-        </Button>
+        {/* Mobile AI Format Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              disabled={!isAIConfigured || isFormatting || !content.trim()}
+              className={cn(
+                "h-10 w-10",
+                "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+                "text-white shadow-lg",
+                "transition-all duration-200",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+              size="icon"
+              title={
+                !isAIConfigured
+                  ? 'Configure AI formatting (set VITE_GEMINI_API_KEY)'
+                  : 'AI Formatting Options'
+              }
+            >
+              <Sparkles className={cn(
+                "h-5 w-5",
+                isFormatting && "animate-spin"
+              )} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleAIFormat('format')}>
+              <Zap className="mr-2 h-4 w-4" />
+              <span>Quick Format</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleAIFormat('enhance')}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              <span>Enhance with AI</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Saving indicator - mobile */}
         <div className={cn(
@@ -291,31 +312,45 @@ export default function Editor({
           </Button>
         )}
 
-        {/* Desktop AI Format Button - show only in editor mode */}
+        {/* Desktop AI Format Dropdown - show only in editor mode */}
         {desktopView === 'editor' && (
-          <Button
-            onClick={handleAIFormat}
-            disabled={!isAIConfigured || isFormatting || !content.trim()}
-            className={cn(
-              "hidden md:flex h-8",
-              "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
-              "text-white",
-              "transition-all duration-200",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-            size="sm"
-            title={
-              !isAIConfigured
-                ? 'Configure AI formatting (set VITE_GEMINI_API_KEY)'
-                : 'Format with AI'
-            }
-          >
-            <Sparkles className={cn(
-              "h-4 w-4 mr-1",
-              isFormatting && "animate-spin"
-            )} />
-            {isFormatting ? 'Formatting...' : 'AI Format'}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                disabled={!isAIConfigured || isFormatting || !content.trim()}
+                className={cn(
+                  "hidden md:flex h-8 px-3",
+                  "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+                  "text-white",
+                  "transition-all duration-200",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+                size="sm"
+                title={
+                  !isAIConfigured
+                    ? 'Configure AI formatting (set VITE_GEMINI_API_KEY)'
+                    : 'AI Formatting Options'
+                }
+              >
+                <Sparkles className={cn(
+                  "h-4 w-4 mr-2",
+                  isFormatting && "animate-spin"
+                )} />
+                {isFormatting ? 'Formatting...' : 'AI Format'}
+                <ChevronDown className="ml-2 h-3 w-3 opacity-80" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => handleAIFormat('format')}>
+                <Zap className="mr-2 h-4 w-4" />
+                <span>Quick Format</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIFormat('enhance')}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                <span>Enhance with AI</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
 
         <Input

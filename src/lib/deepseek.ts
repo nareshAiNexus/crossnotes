@@ -157,7 +157,7 @@ export async function answerWithAI(params: {
     });
 }
 
-export async function formatNotesWithAI(content: string): Promise<string> {
+export async function formatNotesWithAI(content: string, option: 'format' | 'enhance' = 'enhance'): Promise<string> {
     if (!isGeminiConfigured()) {
         toast.error(
             'AI formatting is not configured. Add VITE_GEMINI_API_KEY to your .env file and restart the dev server.'
@@ -170,10 +170,25 @@ export async function formatNotesWithAI(content: string): Promise<string> {
         throw new Error('Empty content');
     }
 
-    const messages: OpenRouterMessage[] = [
-        {
-            role: 'system',
-            content: `You are an expert technical writer and markdown formatting professional. 
+    let systemPrompt = '';
+    let userPrompt = '';
+
+    if (option === 'format') {
+        // Fast, minimal formatting
+        systemPrompt = `You are an expert technical editor.
+Your task is to STRICTLY format the user's notes using Markdown best practices.
+Rules:
+- Fix grammar, spelling, and punctuation errors.
+- Ensure proper heading hierarchy (#, ##, ###).
+- Formatting ONLY: bold (**text**), italics (*text*), code blocks.
+- transform bullet points into lists.
+- NO new content. NO emojis. NO images. NO filler text.
+- Speed is priority. Keep it clean and minimal.
+- Return ONLY the markdown.`;
+        userPrompt = `Format this note strictly (fix grammar/structure only):\n\n${content}`;
+    } else {
+        // Enhanced, rich formatting (GitHub Style)
+        systemPrompt = `You are an expert technical writer and markdown formatting professional. 
 Format the user's notes into a clean, premium GitHub README / Documentation style.
 
 Rules:
@@ -195,20 +210,16 @@ Tasks:
 - Use tables for structured data if appropriate.
 - Ensure the tone is professional yet engaging.
 
-CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in extra code fences. Do NOT add meta-commentary. Just the clean, styled markdown.`
-        },
-        {
-            role: 'user',
-            content: `Transform and format this note into a high-quality GitHub-style document:\n\n${content}`
-        }
-    ];
+CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in extra code fences. Do NOT add meta-commentary. Just the clean, styled markdown.`;
+        userPrompt = `Transform and format this note into a high-quality GitHub-style document:\n\n${content}`;
+    }
 
     try {
         const formattedContent = await chatWithGemini({
-            system: messages[0].content,
-            user: messages[1].content,
+            system: systemPrompt,
+            user: userPrompt,
             temperature: 0.1,
-            max_tokens: 2048
+            max_tokens: option === 'format' ? 1024 : 2048 // Lower token limit for fast mode
         });
 
 

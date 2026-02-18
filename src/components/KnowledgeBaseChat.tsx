@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import MDEditor from '@uiw/react-md-editor';
 import { MessageCircle, Send, Sparkles, Database, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +23,11 @@ import { useNoteNavigation } from "@/hooks/useNoteNavigation";
 type ChatMsg =
   | { role: "user"; content: string }
   | {
-      role: "assistant";
-      content: string;
-      sources?: { noteId: string; noteTitle: string; highlightPhrases: string[] }[];
-      used?: string;
-    };
+    role: "assistant";
+    content: string;
+    sources?: { noteId: string; noteTitle: string; highlightPhrases: string[] }[];
+    used?: string;
+  };
 
 function ThinkingIndicator({ label }: { label?: string }) {
   return (
@@ -125,16 +126,16 @@ export default function KnowledgeBaseChat() {
         return cleaned.split(" ").slice(0, 10).join(" ").trim();
       };
 
-      // Group & dedupe sources per noteId, and carry a few highlight phrases.
+      // Group & dedupe sources per sourceId, and carry a few highlight phrases.
       const grouped = new Map<string, { noteId: string; noteTitle: string; highlightPhrases: string[]; topScore: number }>();
       for (const s of res.sources) {
-        const existing = grouped.get(s.noteId);
+        const existing = grouped.get(s.sourceId);
         const phrase = normalizeSnippetToPhrase(s.snippet);
 
         if (!existing) {
-          grouped.set(s.noteId, {
-            noteId: s.noteId,
-            noteTitle: s.noteTitle,
+          grouped.set(s.sourceId, {
+            noteId: s.sourceId,
+            noteTitle: s.sourceTitle,
             highlightPhrases: phrase ? [phrase] : [],
             topScore: s.score,
           });
@@ -257,11 +258,38 @@ export default function KnowledgeBaseChat() {
                 )}
 
                 {messages.map((m, i) => (
-                  <div key={i} className={cn("rounded-lg p-3", m.role === "user" ? "bg-muted" : "bg-card")}> 
+                  <div key={i} className={cn("rounded-lg p-3", m.role === "user" ? "bg-muted" : "bg-card")}>
                     <div className="text-xs text-muted-foreground mb-1">
                       {m.role === "user" ? "You" : `Assistant${(m as any).used ? ` (${(m as any).used})` : ""}`}
                     </div>
-                    <div className="text-sm whitespace-pre-wrap">{m.content}</div>
+                    {m.role === "user" ? (
+                      <div className="text-sm whitespace-pre-wrap">{m.content}</div>
+                    ) : (
+                      <div className="text-sm prose dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-nav:hidden">
+                        <MDEditor.Markdown
+                          source={m.content}
+                          components={{
+                            a: ({ href, children, ...props }) => {
+                              if (href?.startsWith('/note/')) {
+                                const noteId = href.split('/note/')[1];
+                                return (
+                                  <button
+                                    className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+                                    onClick={() => {
+                                      openNote(noteId, { view: 'preview' });
+                                      setOpen(false);
+                                    }}
+                                  >
+                                    {children}
+                                  </button>
+                                );
+                              }
+                              return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
 
                     {m.role === "assistant" && (m as any).sources?.length > 0 && (
                       <div className="mt-3 border-t pt-2">
@@ -293,7 +321,7 @@ export default function KnowledgeBaseChat() {
 
                 {/* Thinking bubble */}
                 {loading && (
-                  <div className={cn("rounded-lg p-3 bg-card")}> 
+                  <div className={cn("rounded-lg p-3 bg-card")}>
                     <div className="text-xs text-muted-foreground mb-1">
                       Assistant{preferLocal && !isMobile ? " (local)" : ""}
                     </div>
