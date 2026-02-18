@@ -9,6 +9,7 @@ import { useState } from 'react';
 import PDFViewer from './PDFViewer';
 import PPTXViewer from './PPTXViewer';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DocumentListProps {
     onSelectDocument?: (documentId: string) => void;
@@ -16,11 +17,54 @@ interface DocumentListProps {
 }
 
 export default function DocumentList({ onSelectDocument, selectedDocumentId }: DocumentListProps) {
+    const { user } = useAuth();
     const { documents, deleteDocument, getDocumentBlob, indexDocument } = useDocuments();
     const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
 
     const handleDownload = async (doc: Document) => {
         try {
+            // For cloud files on mobile, direct URL might be more reliable
+            if (doc.storageType === 'firebase') {
+                const blob = await getDocumentBlob(doc.id);
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = doc.fileName;
+                    a.target = '_blank'; // Helpful for mobile
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                    toast.success(`Downloading ${doc.fileName}`);
+                } else {
+                    // Fallback: try to get the direct URL if blob fetch failed (likely CORS)
+                    toast.info('Direct download starting...');
+                    const { getFileFromFirebase } = await import('@/lib/document-storage');
+                    const { storage, isFirebaseConfigured } = await import('@/lib/firebase');
+                    const { ref, getDownloadURL } = await import('firebase/storage');
+
+                    if (storage && isFirebaseConfigured() && user) {
+                        const fileRef = ref(storage, `users/${user.uid}/documents/${doc.id}_${doc.fileName}`);
+                        try {
+                            const url = await getDownloadURL(fileRef);
+                            window.open(url, '_blank');
+                        } catch (e) {
+                            // Try legacy path
+                            const legacyRef = ref(storage, `users/${user.uid}/documents/${doc.id}.pdf`);
+                            const url = await getDownloadURL(legacyRef);
+                            window.open(url, '_blank');
+                        }
+                    } else {
+                        toast.error('Could not retrieve download link');
+                    }
+                }
+                return;
+            }
+
+            // Local storage logic (stays the same)
             const blob = await getDocumentBlob(doc.id);
             if (blob) {
                 const url = URL.createObjectURL(blob);
