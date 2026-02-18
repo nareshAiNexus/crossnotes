@@ -56,13 +56,15 @@ export function useKnowledgeBase(params: {
       const toStore: VectorChunk[] = chunks.map((c, i) => ({
         chunkId: c.chunkId,
         userId,
-        noteId: c.noteId,
-        noteTitle: c.noteTitle,
+        sourceId: c.noteId,
+        sourceType: 'note' as const,
+        sourceTitle: c.noteTitle,
         chunkIndex: c.chunkIndex,
         content: c.content,
         vector: vectors[i],
         updatedAt: note.updatedAt ?? now,
       }));
+
 
       await upsertChunks(toStore);
       lastIndexedAtRef.current.set(note.id, note.updatedAt ?? now);

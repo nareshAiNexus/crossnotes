@@ -1,8 +1,9 @@
-import { toast } from 'sonner';
+﻿import { toast } from 'sonner';
+import { chatWithGemini, isGeminiConfigured } from './gemini';
 
-// Using OpenRouter API for DeepSeek R1 Chimera
+// Using OpenRouter API for DeepSeek R1
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEEPSEEK_MODEL = 'tngtech/deepseek-r1t2-chimera:free';
+const DEEPSEEK_MODEL = 'deepseek/deepseek-r1-0528:free';
 
 export interface OpenRouterMessage {
     role: 'system' | 'user' | 'assistant';
@@ -115,11 +116,9 @@ export async function answerWithAI(params: {
 }
 
 export async function formatNotesWithAI(content: string): Promise<string> {
-    const apiKey = getOpenRouterApiKey();
-
-    if (!apiKey) {
+    if (!isGeminiConfigured()) {
         toast.error(
-            'AI formatting is not configured. Add VITE_OPENROUTER_DEEPSEEK_API_KEY (or VITE_DEEPSEEK_API_KEY) to your .env file and restart the dev server.'
+            'AI formatting is not configured. Add VITE_GEMINI_API_KEY to your .env file and restart the dev server.'
         );
         throw new Error('API key not configured');
     }
@@ -132,43 +131,44 @@ export async function formatNotesWithAI(content: string): Promise<string> {
     const messages: OpenRouterMessage[] = [
         {
             role: 'system',
-            content: `You are a markdown formatting expert. Format the user's notes into clean, proper markdown.
+            content: `You are an expert technical writer and markdown formatting professional. 
+Format the user's notes into a clean, premium GitHub README / Documentation style.
 
 Rules:
-- Use # for h1, ## for h2, ### for h3, etc.
-- Use **text** for bold
-- Use *text* for italic  
-- Use \`code\` for inline code
-- Use triple backticks for code blocks
-- Use - or * for bullet lists
-- Use 1. 2. 3. for numbered lists
-- Use > for blockquotes
-- Use --- for horizontal rules
+- Use # for h1, ## for h2, ### for h3. Maintain a clear and logical hierarchy.
+- Use **text** for bold, *text* for italic.
+- Use \`code\` for inline code and triple backticks with language identifiers for code blocks.
+- Use relevant emojis at the start of each heading and occasionally in lists to improve scannability.
+- Add logically relevant detailed image references using markdown syntax: ![Alt Text](https://image.pollinations.ai/prompt/<description>?width=800&height=450&nologo=true).
+  - Example: ![Cyberpunk City](https://image.pollinations.ai/prompt/cyberpunk%20city%20neon%20lights?width=800&height=450&nologo=true)
+  - Ensure the prompt in the URL is URL-encoded and descriptive.
+- Use - for bullet lists and 1. for numbered lists.
+- Use > for important callouts or quotes.
+- Use --- for section separators.
 
 Tasks:
-- Fix markdown syntax errors
-- Create clear heading hierarchy
-- Organize content logically
-- Add proper spacing between sections
-- Use bold/italic for emphasis
-- Format code blocks properly
-- Create lists where appropriate
-- Fix grammar and punctuation
+- Fix grammar, punctuation, and spelling errors.
+- Organize content into descriptive sections with clear headings.
+- Add an introductory section if missing.
+- Use tables for structured data if appropriate.
+- Ensure the tone is professional yet engaging.
 
-CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in code blocks. Do NOT add explanations. Just return the clean markdown that will render correctly.`
+CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in extra code fences. Do NOT add meta-commentary. Just the clean, styled markdown.`
         },
         {
             role: 'user',
-            content: `Format this note:\n\n${content}`
+            content: `Transform and format this note into a high-quality GitHub-style document:\n\n${content}`
         }
     ];
 
     try {
-        const formattedContent = await chatWithAI({
-            messages,
-            temperature: 0.7,
-            max_tokens: 4000
+        const formattedContent = await chatWithGemini({
+            system: messages[0].content,
+            user: messages[1].content,
+            temperature: 0.1,
+            max_tokens: 2048
         });
+
 
         return formattedContent;
     } catch (error) {
@@ -181,3 +181,4 @@ CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in code blocks. Do 
         throw error;
     }
 }
+

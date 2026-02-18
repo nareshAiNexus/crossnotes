@@ -1,0 +1,54 @@
+    Hey Buddy I have an  idea tell me is it worth it or not 
+    Project idea : No code tool  
+    I want to create a tool either website or an application which do 
+    descryption : {
+        The user can select their tech stack such as 
+            - React + vite + tailwind 
+            - React + vite + css
+            - React + tailwind or css
+        Like this the user can select their tech stack and then the user will chose their project title 
+        The main functionalities are {
+            - The UI has to look like penpot and figma 
+            - The user can design the webpage 
+            - The user can create "Components" & "Pages" as they want 
+            - For every component the app in background create a component in react template and note how the user design the component
+                and then store the properties 
+            - The user can chose color add text also pass props and also get input
+            - The design editor was like figma like drag and drop 
+            - The user design pages by clicking + add pages -> in that page they can add what are the components 
+                it has to render when the page is called with an "endpoint" like /home, /profile /notfound
+            - The user can define every inch of their project 
+            - In parrelel they design - the design has to convert to react code in the background
+            
+        } 
+        Now the main part : 
+            Apart from designing the user can add functionalities like {
+                1. Create forms and transfer the data to the database 
+                2. There has to be some default template in our app like login and signup forms , dahboard etc
+                3. The user can create forms and select what field it should have like number , text, email and password 
+                4. The user can add event listeners like scrolling and clicking also if they add an event {
+                    - They can add an embed code or they can make the page redirect to other page /endpoints
+                    - The user can add some basic animations also
+                    - The user clicks add event and select event from dropdown and show what are the actions they can do 
+                    - Make it user friendly like scratch for programming for kids its for react developer and designers for minimal design apps 
+                }
+            }
+        The user can add API also {
+            1. The user can select a database like mysql, oracle or postgresql and firebase
+            2. The user can perform crud operations using those API's in the database also they can embed their own code API
+            3. The user can select the API type such as eternal or db connection 
+            4. You have to keep the app and code as minimal as possible 
+        }
+    }
+
+    MOTO : The moto was to creat a no code tool to create react apps with minimal code structure instead of complex things 
+            Anyone can create a react app - more was to create design with the use of our app 
+            
+    Final feature : 
+        The user can download the design as figma or react code as zip 
+        THe user also conect to their github and make a repo and perform add, commit , push from our app
+
+    The app has to fast no use of database connectivity no external apis no high demand processes 
+    This app was simple as possible the user design -> the react code generated based on it was a component or page or api -> user can download thier design 
+
+    Rate this project out 10.

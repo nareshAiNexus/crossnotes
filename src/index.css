@@ -182,57 +182,68 @@
     line-height: 1.6 !important;
   }
 
-  /* GitHub-style colorful headings */
+  .wmde-markdown img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid hsl(var(--border));
+    display: block;
+    margin: 24px auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  /* GitHub-style colorful headings with better spacing */
   .wmde-markdown h1 {
     color: #58a6ff !important;
-    border-bottom: 1px solid hsl(var(--border)) !important;
+    border-bottom: 1px solid #30363d !important;
     padding-bottom: 0.3em !important;
-    font-size: 2em !important;
-    font-weight: 600 !important;
-    margin-top: 24px !important;
-    margin-bottom: 16px !important;
+    font-size: 2.25em !important;
+    font-weight: 700 !important;
+    margin-top: 32px !important;
+    margin-bottom: 20px !important;
+    letter-spacing: -0.02em !important;
   }
 
   .wmde-markdown h2 {
     color: #7ee787 !important;
-    border-bottom: 1px solid hsl(var(--border)) !important;
+    border-bottom: 1px solid #30363d !important;
     padding-bottom: 0.3em !important;
-    font-size: 1.5em !important;
+    font-size: 1.75em !important;
     font-weight: 600 !important;
-    margin-top: 24px !important;
+    margin-top: 28px !important;
     margin-bottom: 16px !important;
   }
 
   .wmde-markdown h3 {
     color: #d2a8ff !important;
-    font-size: 1.25em !important;
+    font-size: 1.4em !important;
     font-weight: 600 !important;
     margin-top: 24px !important;
-    margin-bottom: 16px !important;
+    margin-bottom: 12px !important;
   }
 
   .wmde-markdown h4 {
     color: #ffa657 !important;
-    font-size: 1em !important;
+    font-size: 1.15em !important;
     font-weight: 600 !important;
-    margin-top: 24px !important;
-    margin-bottom: 16px !important;
+    margin-top: 20px !important;
+    margin-bottom: 12px !important;
   }
 
   .wmde-markdown h5 {
     color: #ff7b72 !important;
-    font-size: 0.875em !important;
+    font-size: 1em !important;
     font-weight: 600 !important;
-    margin-top: 24px !important;
-    margin-bottom: 16px !important;
+    margin-top: 16px !important;
+    margin-bottom: 12px !important;
   }
 
   .wmde-markdown h6 {
     color: #79c0ff !important;
-    font-size: 0.85em !important;
+    font-size: 0.9em !important;
     font-weight: 600 !important;
-    margin-top: 24px !important;
-    margin-bottom: 16px !important;
+    margin-top: 16px !important;
+    margin-bottom: 12px !important;
   }
 
   /* GitHub-style inline code */
@@ -240,14 +251,14 @@
     background-color: rgba(110, 118, 129, 0.4) !important;
     color: #e6edf3 !important;
     font-family: 'JetBrains Mono', ui-monospace, monospace !important;
-    padding: 0.2em 0.4em !important;
+    padding: 0.2em 0.45em !important;
     border-radius: 6px !important;
-    font-size: 85% !important;
+    font-size: 88% !important;
   }
 
   /* Knowledge Base highlights (when opening a note from Sources) */
   .wmde-markdown mark.kb-highlight {
-    background: rgba(250, 204, 21, 0.35) !important;
+    background: rgba(250, 204, 21, 0.4) !important;
     color: inherit !important;
     padding: 0.05em 0.15em !important;
     border-radius: 0.25em !important;
@@ -255,11 +266,11 @@
 
   /* GitHub-style code blocks */
   .wmde-markdown pre {
-    background-color: #161b22 !important;
-    border-radius: 6px !important;
-    padding: 16px !important;
+    background-color: #0d1117 !important;
+    border-radius: 8px !important;
+    padding: 20px !important;
     overflow: auto !important;
-    margin: 16px 0 !important;
+    margin: 20px 0 !important;
     border: 1px solid #30363d !important;
   }
 
@@ -267,45 +278,52 @@
     background-color: transparent !important;
     color: #e6edf3 !important;
     padding: 0 !important;
-    font-size: 85% !important;
-    line-height: 1.45 !important;
+    font-size: 90% !important;
+    line-height: 1.6 !important;
   }
 
   .wmde-markdown a {
     color: #58a6ff !important;
     text-decoration: none !important;
+    font-weight: 500 !important;
+    transition: color 0.2s ease;
   }
 
   .wmde-markdown a:hover {
+    color: #79c0ff !important;
     text-decoration: underline !important;
   }
 
   .wmde-markdown blockquote {
-    border-left: 4px solid #3fb950 !important;
+    border-left: 5px solid #30363d !important;
     color: #8b949e !important;
-    padding: 0.5em 1em !important;
-    margin: 16px 0 !important;
-    background-color: rgba(56, 139, 253, 0.1) !important;
-    border-radius: 0 6px 6px 0 !important;
+    padding: 0.6em 1.2em !important;
+    margin: 20px 0 !important;
+    background-color: #161b22 !important;
+    border-radius: 0 8px 8px 0 !important;
   }
 
   .wmde-markdown ul,
   .wmde-markdown ol {
-    padding-left: 2em !important;
-    margin: 16px 0 !important;
+    padding-left: 2.5em !important;
+    margin: 20px 0 !important;
   }
 
   .wmde-markdown li {
-    margin: 4px 0 !important;
+    margin: 8px 0 !important;
+  }
+
+  .wmde-markdown li>p {
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
   }
 
   .wmde-markdown hr {
-    height: 0.25em !important;
+    height: 1px !important;
     padding: 0 !important;
-    margin: 24px 0 !important;
+    margin: 32px 0 !important;
     background-color: #30363d !important;
     border: 0 !important;
-    border-radius: 2px !important;
   }
 
   .wmde-markdown table {
@@ -427,6 +445,7 @@
    * constrain the editor input to 50% width (making it look centered/narrow).
    */
   @media (min-width: 768px) {
+
     .editor-equal-height .w-md-editor-input,
     .editor-equal-height .w-md-editor-preview {
       flex: 1 1 50% !important;
@@ -509,6 +528,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   html,
   body,
   .theme-animating,

@@ -1,5 +1,6 @@
 import { generateEmbedding } from "@/lib/embeddings";
-import { answerWithAI, isAIFormattingConfigured } from "@/lib/deepseek";
+import { isAIFormattingConfigured } from "@/lib/deepseek";
+import { answerWithGemini, isGeminiConfigured } from "@/lib/gemini";
 import { generateLocalAnswer, isWebGPUAvailable } from "@/lib/local-llm";
 import { fetchWikipediaSummary } from "@/lib/wiki";
 import { searchSimilar, type SimilarityResult } from "@/lib/vectordb";
@@ -17,7 +18,7 @@ export interface RAGSource {
 export interface RAGAnswer {
   answer: string;
   sources: RAGSource[];
-  used: "local" | "deepseek";
+  used: "local" | "gemini" | "deepseek";
 }
 
 const STOPWORDS = new Set([
@@ -327,7 +328,7 @@ export async function askFromNotes(params: {
     return `\`${sourceTitles.join(", ")}\``;
   };
 
-  const formatFinal = (answerLineRaw: string, general: string[], used: "local" | "deepseek") => {
+  const formatFinal = (answerLineRaw: string, general: string[], used: "local" | "gemini" | "deepseek") => {
     const answerLine = quoteIfShortEntity(answerLineRaw);
     const citation = buildInlineCitation();
 
@@ -348,18 +349,23 @@ export async function askFromNotes(params: {
   // If we have note context, answer using notes (but allow general knowledge too).
   if (hasNoteMatch && context) {
     const system =
-      "You are a helpful assistant. Use the provided note excerpts when they are relevant. " +
-      "If the notes don't fully define the answer, you may use general knowledge to complete the response. " +
+      "You are an expert AI assistant. Your primary goal is to provide accurate, helpful, and concise answers based on the provided notes. " +
+      "If the notes contain the answer, prioritize that information. " +
+      "If the notes are insufficient, use your general knowledge to supplement but clearly distinguish or integrate it smoothly. " +
+      "If you don't know the answer and it's not in the notes, say so. " +
       "Output format:\n" +
-      "- Line 1: ONLY the short final answer (no extra words).\n" +
-      "- Lines 2-4: 2-3 short lines of general information.\n" +
-      "Do NOT mention the notes, sources, excerpts, or citations in your output.";
+      "- Line 1: A direct, concise final answer (1-2 sentences).\n" +
+      "- Following lines: 2-3 bullet points or short lines of additional context or general information if helpful.\n" +
+      "CRITICAL: Do NOT mention 'the notes', 'sources', 'excerpts', or 'citations' in your response text itself. " +
+      "I will handle the citations separately.";
 
     const userPrompt =
       `Question:\n${params.question}\n\n` +
       `Note excerpts (may be partial):\n${context}`;
 
-    if (params.preferLocalLLM && isWebGPUAvailable()) {
+    // Only use local LLM if explicitly preferred AND Gemini is NOT configured.
+    // This prevents GPU crashes when the user wants to use Gemini.
+    if (params.preferLocalLLM && isWebGPUAvailable() && !isGeminiConfigured()) {
       const raw = await generateLocalAnswer({
         system,
         user: userPrompt,
@@ -373,17 +379,17 @@ export async function askFromNotes(params: {
       }
     }
 
-    if (isAIFormattingConfigured()) {
-      const raw = await answerWithAI({
+    if (isGeminiConfigured()) {
+      const raw = await answerWithGemini({
         system,
         user: userPrompt,
-        temperature: 0.2,
-        max_tokens: 1200,
+        temperature: 0.1,
+        max_tokens: 1024,
       });
 
       const parsed = parseAnswerLines(raw);
       if (!parsed.isUnknown) {
-        return { ...formatFinal(parsed.answerLine, parsed.general, "deepseek"), sources };
+        return { ...formatFinal(parsed.answerLine, parsed.general, "gemini"), sources };
       }
     }
 
@@ -391,19 +397,19 @@ export async function askFromNotes(params: {
     const entity = stripQuestionToEntity(params.question) || params.question;
     const wiki = await fetchWikipediaSummary(entity);
 
-    if (wiki && isAIFormattingConfigured()) {
+    if (wiki && isGeminiConfigured()) {
       const webSystem =
-        "You are a helpful assistant. Use ONLY the provided Wikipedia summary to answer. " +
+        "You are an expert assistant. Use the provided Wikipedia summary to answer the question concisely. " +
         "Output format:\n" +
-        "- Line 1: ONLY the short final answer (no extra words).\n" +
-        "- Lines 2-4: 2-3 short lines of general information.\n" +
-        "Do NOT mention Wikipedia or add citations.";
+        "- Line 1: Direct concise answer.\n" +
+        "- Following lines: 2-3 brief additional facts.\n" +
+        "Do NOT mention Wikipedia or citations.";
 
       const webUser = `Question:\n${params.question}\n\nWikipedia summary:\n${wiki.extract}`;
-      const raw = await answerWithAI({ system: webSystem, user: webUser, temperature: 0.2, max_tokens: 900 });
+      const raw = await answerWithGemini({ system: webSystem, user: webUser, temperature: 0.1, max_tokens: 800 });
       const parsed = parseAnswerLines(raw);
       if (!parsed.isUnknown) {
-        return { ...formatFinal(parsed.answerLine, parsed.general, "deepseek"), sources };
+        return { ...formatFinal(parsed.answerLine, parsed.general, "gemini"), sources };
       }
     }
 
@@ -428,19 +434,19 @@ export async function askFromNotes(params: {
   const wikiHint = keywords.length ? `${entity}` : entity;
   const wiki = await fetchWikipediaSummary(wikiHint);
 
-  if (wiki && isAIFormattingConfigured()) {
+  if (wiki && isGeminiConfigured()) {
     const system =
-      "You are a helpful assistant. Use ONLY the provided Wikipedia summary to answer. " +
+      "You are an expert assistant. Use the provided Wikipedia summary to answer accurately. " +
       "Output format:\n" +
-      "- Line 1: ONLY the short final answer (no extra words).\n" +
-      "- Lines 2-4: 2-3 short lines of general information.\n" +
-      "Do NOT mention Wikipedia or add citations.";
+      "- Line 1: Direct concise answer.\n" +
+      "- Following lines: 2-3 brief additional facts.\n" +
+      "Do NOT mention Wikipedia or citations.";
 
     const user = `Question:\n${params.question}\n\nWikipedia summary:\n${wiki.extract}`;
-    const raw = await answerWithAI({ system, user, temperature: 0.2, max_tokens: 900 });
+    const raw = await answerWithGemini({ system, user, temperature: 0.1, max_tokens: 800 });
     const parsed = parseAnswerLines(raw);
     if (!parsed.isUnknown) {
-      return { ...formatFinal(parsed.answerLine, parsed.general, "deepseek"), sources: [], used: "deepseek" };
+      return { ...formatFinal(parsed.answerLine, parsed.general, "gemini"), sources: [], used: "gemini" };
     }
   }
 
@@ -456,16 +462,20 @@ export async function askFromNotes(params: {
     return { answer: [quoteIfShortEntity(title), "", ...lines].join("\n"), sources: [], used: "local" };
   }
 
-  // Final fallback: general answer via model (no citations).
-  if (isAIFormattingConfigured()) {
+  // Final fallback: general answer via Gemini (no local context)
+  if (isGeminiConfigured()) {
     const system =
-      "You are a helpful assistant. Answer the user's question. " +
+      "You are a helpful expert assistant. Answer the user's question concisely. " +
       "Output format:\n" +
-      "- Line 1: ONLY the short final answer (no extra words).\n" +
-      "- Lines 2-4: 2-3 short lines of general information.";
-    const raw = await answerWithAI({ system, user: params.question, temperature: 0.2, max_tokens: 900 });
+      "- Line 1: Direct concise answer.\n" +
+      "- Following lines: 2-3 brief additional facts.";
+    const raw = await answerWithGemini({ system, user: params.question, temperature: 0.2, max_tokens: 800 });
     const parsed = parseAnswerLines(raw);
-    return { answer: formatFinal(parsed.answerLine || "", parsed.general, "deepseek").answer, sources: [], used: "deepseek" };
+    return {
+      answer: formatFinal(parsed.answerLine || "", parsed.general, "gemini").answer,
+      sources: [],
+      used: "gemini"
+    };
   }
 
   return { answer: "I couldn't find anything relevant in your notes for that question.", sources: [], used: "local" };

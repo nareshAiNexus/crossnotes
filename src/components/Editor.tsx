@@ -7,7 +7,8 @@ import { Menu, Save, FileText, Sparkles, Edit3, Eye, PanelLeftOpen, PanelLeftClo
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import debounce from '@/lib/debounce';
-import { formatNotesWithAI, isAIFormattingConfigured } from '@/lib/deepseek';
+import { formatNotesWithAI } from '@/lib/deepseek';
+import { isGeminiConfigured } from '@/lib/gemini';
 import { makeRehypeHighlighter } from '@/lib/rehype-highlight';
 import { remarkSoftbreaksToBreaks } from '@/lib/remark-softbreaks';
 import { toast } from 'sonner';
@@ -102,7 +103,7 @@ export default function Editor({
     }
   }, [noteId, debouncedSave]); // Removed 'title' from dependencies as it's not used in the debouncedSave call here.
 
-  const isAIConfigured = isAIFormattingConfigured();
+  const isAIConfigured = isGeminiConfigured();
 
   const handleAIFormat = async () => {
     if (!isAIConfigured) {
@@ -227,7 +228,7 @@ export default function Editor({
           size="icon"
           title={
             !isAIConfigured
-              ? 'Configure AI formatting (set VITE_OPENROUTER_DEEPSEEK_API_KEY)'
+              ? 'Configure AI formatting (set VITE_GEMINI_API_KEY)'
               : 'Format with AI'
           }
         >
@@ -305,7 +306,7 @@ export default function Editor({
             size="sm"
             title={
               !isAIConfigured
-                ? 'Configure AI formatting (set VITE_OPENROUTER_DEEPSEEK_API_KEY)'
+                ? 'Configure AI formatting (set VITE_GEMINI_API_KEY)'
                 : 'Format with AI'
             }
           >
