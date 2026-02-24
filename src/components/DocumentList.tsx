@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
 interface DocumentListProps {
-    onSelectDocument?: (documentId: string) => void;
+    onSelectDocument?: (documentId: string) => void;    
     selectedDocumentId?: string | null;
 }
 

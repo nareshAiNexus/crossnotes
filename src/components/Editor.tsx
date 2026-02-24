@@ -22,6 +22,7 @@ import ImageLightbox from '@/components/ImageLightbox';
 import Mermaid from '@/components/Mermaid';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import Welcome from '@/components/Welcome';
 
 interface EditorProps {
   noteId: string | null;
@@ -181,42 +182,11 @@ export default function Editor({
 
   if (!noteId) {
     return (
-      <div className="flex-1 flex flex-col bg-background overflow-hidden">
-        {/* Desktop header (keeps sidebar toggle accessible) */}
-        <div className="hidden md:flex items-center gap-3 p-4 border-b border-border shrink-0">
-          {onToggleDesktopSidebar && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={onToggleDesktopSidebar}
-              title={isDesktopSidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
-            >
-              {isDesktopSidebarHidden ? (
-                <PanelLeftOpen className="h-5 w-5" />
-              ) : (
-                <PanelLeftClose className="h-5 w-5" />
-              )}
-            </Button>
-          )}
-        </div>
-
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-muted-foreground animate-fade-in">
-            <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
-            <h2 className="text-xl font-medium mb-2">Select a note</h2>
-            <p className="text-sm">Choose a note from the sidebar or create a new one</p>
-            <Button
-              variant="ghost"
-              className="mt-4 md:hidden"
-              onClick={onMenuClick}
-            >
-              <Menu className="h-4 w-4 mr-2" />
-              Open Sidebar
-            </Button>
-          </div>
-        </div>
-      </div>
+      <Welcome
+        onMenuClick={onMenuClick}
+        onToggleDesktopSidebar={onToggleDesktopSidebar}
+        isDesktopSidebarHidden={isDesktopSidebarHidden}
+      />
     );
   }
 
