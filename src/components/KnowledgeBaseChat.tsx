@@ -11,12 +11,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
+import { cn, autoRenderImages, getTextContent } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotes } from "@/hooks/useNotes";
 import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { askFromNotes } from "@/lib/rag";
+import ImageLightbox from "@/components/ImageLightbox";
+import Mermaid from "@/components/Mermaid";
+import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
 import { isWebGPUAvailable } from "@/lib/local-llm";
 import { useNoteNavigation } from "@/hooks/useNoteNavigation";
 
@@ -62,6 +66,11 @@ export default function KnowledgeBaseChat() {
 
   // Mobile optimization: default to remote (local WebGPU models are heavy and can freeze phones).
   const [preferLocal, setPreferLocal] = useState(() => !isMobile);
+  const [lightbox, setLightbox] = useState<{ isOpen: boolean; src: string; alt: string }>({
+    isOpen: false,
+    src: '',
+    alt: '',
+  });
   const [localProgress, setLocalProgress] = useState<string | null>(null);
 
   // Throttle local progress updates to avoid excessive re-renders on slower devices.
@@ -267,7 +276,9 @@ export default function KnowledgeBaseChat() {
                     ) : (
                       <div className="text-sm prose dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-nav:hidden">
                         <MDEditor.Markdown
-                          source={m.content}
+                          source={autoRenderImages(m.content)}
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
                           components={{
                             a: ({ href, children, ...props }) => {
                               if (href?.startsWith('/note/')) {
@@ -289,11 +300,18 @@ export default function KnowledgeBaseChat() {
                             img: (props) => (
                               <img
                                 {...props}
-                                referrerPolicy="no-referrer"
                                 loading="lazy"
-                                className="rounded-md border border-border my-2 max-w-full"
+                                className="rounded-md border border-border my-2 max-w-full cursor-zoom-in hover:scale-[1.01] transition-transform"
+                                onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
                               />
-                            )
+                            ),
+                            code: ({ inline, className, children, ...props }: any) => {
+                              const match = /language-(\w+)/.exec(className || '');
+                              if (!inline && match && match[1] === 'mermaid') {
+                                return <Mermaid chart={children} />;
+                              }
+                              return <code className={className} {...props}>{children}</code>;
+                            }
                           }}
                         />
                       </div>
@@ -369,6 +387,13 @@ export default function KnowledgeBaseChat() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <ImageLightbox
+        isOpen={lightbox.isOpen}
+        src={lightbox.src}
+        alt={lightbox.alt}
+        onClose={() => setLightbox(prev => ({ ...prev, isOpen: false }))}
+      />
     </>
   );
 }

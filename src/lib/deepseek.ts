@@ -177,6 +177,12 @@ export async function formatNotesWithAI(content: string, option: 'format' | 'enh
         // Fast, minimal formatting
         systemPrompt = `You are an expert technical editor.
 Your task is to STRICTLY format the user's notes using Markdown best practices.
+
+STRICT RULES:
+1. NEVER delete or summarize any information provided by the user.
+2. KEEP ALL original facts, data points, and phrases.
+3. Only fix grammar, spelling, and structure.
+
 Rules:
 - Fix grammar, spelling, and punctuation errors.
 - Ensure proper heading hierarchy (#, ##, ###).
@@ -185,21 +191,39 @@ Rules:
 - NO new content. NO emojis. NO images. NO filler text.
 - Speed is priority. Keep it clean and minimal.
 - Return ONLY the markdown.`;
-        userPrompt = `Format this note strictly (fix grammar/structure only):\n\n${content}`;
+        userPrompt = `Format this note strictly without losing any information:\n\n${content}`;
     } else {
         // Enhanced, rich formatting (GitHub Style)
         systemPrompt = `You are an expert technical writer and markdown formatting professional. 
 Format the user's notes into a clean, premium GitHub README / Documentation style.
+
+STRICT RULES:
+1. NEVER delete or summarize any meaningful information provided by the user.
+2. KEEP ALL original facts and data points. You may expand or rephrase for clarity, but NEVER remove content.
+3. If the user provided images or diagrams, PRESERVE THEM in the output.
 
 Rules:
 - Use # for h1, ## for h2, ### for h3. Maintain a clear and logical hierarchy.
 - Use **text** for bold, *text* for italic.
 - Use \`code\` for inline code and triple backticks with language identifiers for code blocks.
 - Use relevant emojis at the start of each heading and occasionally in lists to improve scannability.
-- Add logically relevant detailed image references using markdown syntax: ![Alt Text](https://image.pollinations.ai/prompt/<description>?width=800&height=450&nologo=true).
-  - Example: ![Cyberpunk City](https://image.pollinations.ai/prompt/cyberpunk%20city%20neon%20lights?width=800&height=450&nologo=true)
-  - Ensure the prompt in the URL is URL-encoded and descriptive.
-  - STRICTLY FORBIDDEN: Do NOT use source.unsplash.com or any other image service. ONE AND ONLY use pollinations.ai.
+- Add logically relevant detailed image references using markdown syntax. 
+  - PRIORITIZE using real high-quality images from the internet (e.g., Unsplash: ![Alt Text](https://source.unsplash.com/featured/?<keywords>)).
+  - Get image relevant to the content from internet get the image adress and put it in the markdown as <img src="image_address" alt="image_description">
+  - Use descriptive keywords to ensure quality.
+- Use Mermaid flowcharts (\`\`\`mermaid) for visualizing relationships or workflows.
+  - STRICT RULES: 
+    1. Always start with \`graph TD\` or \`graph LR\`.
+    2. Use simple node labels: \`A[Step] --> B[Next]\`.
+    3. NEVER use special characters like () or [] inside node names unless they are properly escaped or quoted.
+    4. Keep it concise.
+  - Example: 
+    \`\`\`mermaid
+    graph TD
+      A[Start] --> B{Condition}
+      B -- Yes --> C[Process]
+      B -- No --> D[End]
+    \`\`\`
 - Use - for bullet lists and 1. for numbered lists.
 - Use > for important callouts or quotes.
 - Use --- for section separators.
@@ -210,9 +234,10 @@ Tasks:
 - Add an introductory section if missing.
 - Use tables for structured data if appropriate.
 - Ensure the tone is professional yet engaging.
+- **PROACTIVE MERMAID**: If technical processes or workflows are mentioned, PROACTIVELY generate a Mermaid diagram to visualize them.
 
 CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in extra code fences. Do NOT add meta-commentary. Just the clean, styled markdown.`;
-        userPrompt = `Transform and format this note into a high-quality GitHub-style document:\n\n${content}`;
+        userPrompt = `Transform and format this note into a high-quality document while PRESERVING ALL CONTENT. PROACTIVELY add Mermaid diagrams where helpful:\n\n${content}`;
     }
 
     try {
@@ -232,7 +257,7 @@ CRITICAL: Return ONLY the formatted markdown. Do NOT wrap it in extra code fence
             if (error.message.includes('Rate limit')) {
                 toast.error('Rate limit exceeded. Please wait a few minutes before trying again. The free API has usage limits.');
             } else {
-                toast.error(`Failed to format: ${error.message}`);
+                toast.error(`Failed to format: ${error.message} `);
             }
         } else {
             toast.error('Failed to format notes');

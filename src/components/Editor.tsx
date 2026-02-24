@@ -5,7 +5,7 @@ import { useNotes, type Note } from '@/hooks/useNotes';
 import { useTheme } from '@/hooks/useTheme';
 import { Menu, Save, FileText, Sparkles, Edit3, Eye, PanelLeftOpen, PanelLeftClose, Zap, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, autoRenderImages, getTextContent } from '@/lib/utils';
 import debounce from '@/lib/debounce';
 import { formatNotesWithAI } from '@/lib/deepseek';
 import { isGeminiConfigured } from '@/lib/gemini';
@@ -18,6 +18,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ImageLightbox from '@/components/ImageLightbox';
+import Mermaid from '@/components/Mermaid';
+import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
 
 interface EditorProps {
   noteId: string | null;
@@ -46,6 +50,13 @@ export default function Editor({
   const [isFormatting, setIsFormatting] = useState(false);
   const [desktopView, setDesktopView] = useState<'preview' | 'editor'>('preview'); // Desktop: preview first
   const [mobileView, setMobileView] = useState<'preview' | 'editor'>('preview'); // Mobile: preview first
+  const [lightbox, setLightbox] = useState<{ isOpen: boolean; src: string; alt: string }>({
+    isOpen: false,
+    src: '',
+    alt: '',
+  });
+  const [preAIContent, setPreAIContent] = useState<string | null>(null);
+  const [aiFormattedContent, setAiFormattedContent] = useState<string | null>(null);
 
   useEffect(() => {
     if (viewRequest?.view) {
@@ -54,14 +65,14 @@ export default function Editor({
     }
   }, [viewRequest?.nonce]);
 
-  const remarkPlugins = useMemo(() => [remarkSoftbreaksToBreaks], []);
+  const remarkPlugins = useMemo(() => [remarkGfm, remarkSoftbreaksToBreaks], []);
 
   const rehypePlugins = useMemo(() => {
     const phrases = (highlightPhrases ?? []).filter(Boolean);
-    if (phrases.length === 0) return [];
     // highlightNonce included to force plugin recreation when highlights change
-    void highlightNonce;
-    return [makeRehypeHighlighter(phrases)];
+    void highlightNonce; // This line is to acknowledge the dependency without using it directly
+    if (phrases.length === 0) return [rehypeRaw];
+    return [rehypeRaw, makeRehypeHighlighter(phrases)];
   }, [highlightPhrases, highlightNonce]);
 
   const note = notes.find(n => n.id === noteId);
@@ -80,6 +91,8 @@ export default function Editor({
       setTitle('');
       setContent('');
     }
+    setPreAIContent(null); // Clear undo state when switching notes
+    setAiFormattedContent(null);
   }, [note?.id]);
 
   const debouncedSave = useCallback(
@@ -101,13 +114,17 @@ export default function Editor({
   const handleContentChange = useCallback((value?: string) => {
     const newContent = value || '';
     setContent(newContent);
-    // The instruction implies a change in debouncedSave signature, but only provides the call.
-    // To maintain syntactic correctness and avoid unrelated edits, we'll keep the original debouncedSave signature.
-    // This means the call here must match the original debouncedSave signature.
+
+    // Clear AI history if user makes manual edits that are not undo/redo
+    if (newContent !== aiFormattedContent && newContent !== preAIContent) {
+      setPreAIContent(null);
+      setAiFormattedContent(null);
+    }
+
     if (noteId) {
       debouncedSave(noteId, { content: newContent });
     }
-  }, [noteId, debouncedSave]); // Removed 'title' from dependencies as it's not used in the debouncedSave call here.
+  }, [noteId, debouncedSave, aiFormattedContent, preAIContent]);
 
   const isAIConfigured = isGeminiConfigured();
 
@@ -127,6 +144,11 @@ export default function Editor({
       const label = mode === 'format' ? 'Quick Formatting...' : 'Enhancing with AI...';
       toast.info(label);
       const formattedContent = await formatNotesWithAI(content, mode);
+
+      // Save for Undo/Redo
+      setPreAIContent(content);
+      setAiFormattedContent(formattedContent);
+
       setContent(formattedContent);
 
       // Save the formatted content
@@ -134,7 +156,21 @@ export default function Editor({
         await updateNote(noteId, { content: formattedContent });
       }
 
-      toast.success(mode === 'format' ? 'Formatted successfully!' : 'Enhanced successfully!');
+      const isQuickFormat = mode === 'format';
+      toast.success(isQuickFormat ? 'Formatted successfully!' : 'Enhanced successfully!', {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            if (preAIContent !== null) {
+              setContent(preAIContent);
+              if (noteId) updateNote(noteId, { content: preAIContent });
+              setPreAIContent(null); // Clear preAIContent after undo
+              setAiFormattedContent(null); // Clear aiFormattedContent after undo
+              toast.success('Restored original content');
+            }
+          }
+        }
+      });
     } catch (error) {
       console.error('Failed to format note:', error);
       // Error toast is already shown in formatNotesWithAI
@@ -259,6 +295,31 @@ export default function Editor({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Mobile Undo/Redo AI Button */}
+        {(preAIContent !== null || aiFormattedContent !== null) && mobileView === 'editor' && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              if (content === aiFormattedContent && preAIContent) {
+                // Undo: apply original
+                setContent(preAIContent);
+                if (noteId) updateNote(noteId, { content: preAIContent });
+                toast.success('Restored original');
+              } else if (content === preAIContent && aiFormattedContent) {
+                // Redo: apply AI version
+                setContent(aiFormattedContent);
+                if (noteId) updateNote(noteId, { content: aiFormattedContent });
+                toast.success('Applied AI changes');
+              }
+            }}
+            className="h-10 w-10 border-primary/30 text-primary bg-primary/5 shadow-md flex items-center justify-center animate-pulse-subtle"
+            title={content === aiFormattedContent ? 'Undo AI changes' : 'Redo AI changes'}
+          >
+            <Zap className={cn("h-5 w-5 fill-current", content === preAIContent && "rotate-180")} />
+          </Button>
+        )}
+
         {/* Saving indicator - mobile */}
         <div className={cn(
           "flex items-center gap-1 text-xs transition-opacity",
@@ -286,7 +347,31 @@ export default function Editor({
           </Button>
         )}
 
-        {/* Desktop Edit Button - show only in preview mode */}
+        {/* Desktop Undo/Redo AI Button */}
+        {(preAIContent !== null || aiFormattedContent !== null) && desktopView === 'editor' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (content === aiFormattedContent && preAIContent) {
+                // Undo: apply original
+                setContent(preAIContent);
+                if (noteId) updateNote(noteId, { content: preAIContent });
+                toast.success('Restored original');
+              } else if (content === preAIContent && aiFormattedContent) {
+                // Redo: apply AI version
+                setContent(aiFormattedContent);
+                if (noteId) updateNote(noteId, { content: aiFormattedContent });
+                toast.success('Applied AI changes');
+              }
+            }}
+            className="flex items-center gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          >
+            <Zap className={cn("h-4 w-4", content === preAIContent && "rotate-180")} />
+            {content === aiFormattedContent ? 'Undo AI' : 'Redo AI'}
+          </Button>
+        )}
+
         {desktopView === 'preview' && (
           <Button
             variant="outline"
@@ -388,19 +473,26 @@ export default function Editor({
               <div className="w-full max-w-3xl px-8 py-6">
                 <article className="mx-auto prose lg:prose-lg max-w-none text-left">
                   <MDEditor.Markdown
-                    source={content}
+                    source={autoRenderImages(content)}
                     remarkPlugins={remarkPlugins}
                     rehypePlugins={rehypePlugins}
                     components={{
                       img: (props) => (
                         <img
                           {...props}
-                          referrerPolicy="no-referrer"
                           loading="lazy"
                           alt={props.alt || 'Image'}
-                          className="rounded-lg shadow-md border border-border mx-auto"
+                          className="rounded-lg shadow-md border border-border mx-auto cursor-zoom-in hover:scale-[1.01] transition-transform"
+                          onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
                         />
-                      )
+                      ),
+                      code: ({ inline, className, children, ...props }: any) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        if (!inline && match && match[1] === 'mermaid') {
+                          return <Mermaid chart={children} />;
+                        }
+                        return <code className={className} {...props}>{children}</code>;
+                      }
                     }}
                   />
                 </article>
@@ -423,12 +515,19 @@ export default function Editor({
                     img: (props: any) => (
                       <img
                         {...props}
-                        referrerPolicy="no-referrer"
                         loading="lazy"
                         alt={props.alt || 'Image'}
-                        className="rounded-lg shadow-md border border-border mx-auto max-w-full"
+                        className="rounded-lg shadow-md border border-border mx-auto max-w-full cursor-zoom-in hover:scale-[1.01] transition-transform"
+                        onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
                       />
-                    )
+                    ),
+                    code: ({ inline, className, children, ...props }: any) => {
+                      const match = /language-(\w+)/.exec(className || '');
+                      if (!inline && match && match[1] === 'mermaid') {
+                        return <Mermaid chart={children} />;
+                      }
+                      return <code className={className} {...props}>{children}</code>;
+                    }
                   }
                 }}
                 className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-12"
@@ -444,19 +543,26 @@ export default function Editor({
               <div className="w-full max-w-2xl px-5 py-6">
                 <article className="mx-auto prose prose-base sm:prose-lg text-left dark:prose-invert">
                   <MDEditor.Markdown
-                    source={content || '*No content yet. Switch to edit mode to start writing.*'}
+                    source={autoRenderImages(content || '*No content yet. Switch to edit mode to start writing.*')}
                     remarkPlugins={remarkPlugins}
                     rehypePlugins={rehypePlugins}
                     components={{
                       img: (props) => (
                         <img
                           {...props}
-                          referrerPolicy="no-referrer"
                           loading="lazy"
                           alt={props.alt || 'Image'}
-                          className="rounded-lg shadow-md border border-border mx-auto"
+                          className="rounded-lg shadow-md border border-border mx-auto cursor-zoom-in hover:scale-[1.01] transition-transform"
+                          onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
                         />
-                      )
+                      ),
+                      code: ({ inline, className, children, ...props }: any) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        if (!inline && match && match[1] === 'mermaid') {
+                          return <Mermaid chart={children} />;
+                        }
+                        return <code className={className} {...props}>{children}</code>;
+                      }
                     }}
                   />
                 </article>
@@ -478,12 +584,19 @@ export default function Editor({
                     img: (props: any) => (
                       <img
                         {...props}
-                        referrerPolicy="no-referrer"
                         loading="lazy"
                         alt={props.alt || 'Image'}
-                        className="rounded-lg shadow-md border border-border mx-auto max-w-full"
+                        className="rounded-lg shadow-md border border-border mx-auto max-w-full cursor-zoom-in hover:scale-[1.01] transition-transform"
+                        onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
                       />
-                    )
+                    ),
+                    code: ({ inline, className, children, ...props }: any) => {
+                      const match = /language-(\w+)/.exec(className || '');
+                      if (!inline && match && match[1] === 'mermaid') {
+                        return <Mermaid chart={children} />;
+                      }
+                      return <code className={className} {...props}>{children}</code>;
+                    }
                   }
                 }}
                 className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-4 [&_.cm-editor]:!pr-4 [&_.cm-editor]:!text-base [&_.cm-editor]:!leading-relaxed [&_.w-md-editor-toolbar]:!px-2 [&_.w-md-editor-toolbar]:!py-2 [&_.w-md-editor-preview]:!hidden"
@@ -492,6 +605,13 @@ export default function Editor({
           )}
         </div>
       </div>
+
+      <ImageLightbox
+        isOpen={lightbox.isOpen}
+        src={lightbox.src}
+        alt={lightbox.alt}
+        onClose={() => setLightbox(prev => ({ ...prev, isOpen: false, alt: prev.alt }))}
+      />
     </div>
   );
 }

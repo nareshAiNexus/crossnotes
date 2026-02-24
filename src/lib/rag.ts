@@ -353,7 +353,10 @@ export async function askFromNotes(params: {
   if (hasNoteMatch && context) {
     const system =
       "You are a helpful expert assistant. Answer the user's question concisely based on the notes. " +
-      "If the answer is in the notes, use it. If not, briefly use general knowledge. " +
+      "Important: Add logically relevant detailed image references using markdown syntax or HTML <img> tags. " +
+      "PRIORITIZE using real high-quality images from the internet (e.g., Unsplash: ![Alt](https://source.unsplash.com/featured/?<keywords>) or <img src=\"url\" alt=\"text\">). " +
+      "Only if a specific real image cannot be found, use pollinations.ai as a fallback. " +
+      "Use Mermaid flowcharts for complex processes: ```mermaid\ngraph TD\nA[Start] --> B[End]\n```. " +
       "Output format:\n" +
       "- Line 1: Direct, concise answer.\n" +
       "- Following lines: Bullet points with key details.\n" +
