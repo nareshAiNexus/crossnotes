@@ -13,6 +13,7 @@ export interface VectorChunk {
   // For documents only
   pageNumber?: number; // PDF page number
   fileName?: string; // original filename
+  isPartial?: boolean; // track if source is partially indexed
   // denormalized field for indexing
   noteKey?: string;
 }

@@ -31,7 +31,7 @@ export default function PDFViewer({ document, isOpen, onClose }: PDFViewerProps)
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState<number>(1);
-    const [scale, setScale] = useState<number>(1.0);
+    const [scale, setScale] = useState<number>(1.2); // Increased default scale
     const [loading, setLoading] = useState(false);
 
     // Load PDF when dialog opens
@@ -83,14 +83,16 @@ export default function PDFViewer({ document, isOpen, onClose }: PDFViewerProps)
             setPdfUrl(null);
         }
         setPageNumber(1);
-        setScale(1.0);
+        setScale(1.2); // Reset to default scale
         onClose();
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-            <DialogContent className="bg-zinc-100 dark:bg-zinc-900 border-border max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden">
-                <DialogHeader className="px-4 py-3 bg-card border-b border-border flex flex-row items-center justify-between space-y-0">
+            {/* max-w-[95vw] and h-[95vh] to maximize screen usage */}
+            <DialogContent className="bg-zinc-100 dark:bg-zinc-900 border-border max-w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden">
+                {/* pr-12 to prevent close button overlap */}
+                <DialogHeader className="px-4 pr-12 py-3 bg-card border-b border-border flex flex-row items-center justify-between space-y-0">
                     <DialogTitle className="text-foreground text-sm font-medium truncate max-w-md">
                         {document.fileName}
                     </DialogTitle>
@@ -126,18 +128,18 @@ export default function PDFViewer({ document, isOpen, onClose }: PDFViewerProps)
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6"
-                                onClick={() => setScale(s => Math.max(0.5, s - 0.1))}
+                                onClick={() => setScale(s => Math.max(0.5, s - 0.2))}
                             >
-                                <ZoomOut className="h-3 w-3" />
+                                <ZoomOut className="h-4 w-4" />
                             </Button>
-                            <span className="text-xs w-12 text-center">{Math.round(scale * 100)}%</span>
+                            <span className="text-xs w-12 text-center font-medium">{Math.round(scale * 100)}%</span>
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6"
-                                onClick={() => setScale(s => Math.min(2.5, s + 0.1))}
+                                onClick={() => setScale(s => Math.min(3.5, s + 0.2))}
                             >
-                                <ZoomIn className="h-3 w-3" />
+                                <ZoomIn className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
@@ -159,13 +161,13 @@ export default function PDFViewer({ document, isOpen, onClose }: PDFViewerProps)
                                 </div>
                             }
                         >
-                            <div className="shadow-lg border border-border/10">
+                            <div className="shadow-2xl border border-border/10 mb-4">
                                 <Page
                                     pageNumber={pageNumber}
                                     scale={scale}
                                     className="bg-white"
-                                    renderTextLayer={false}
-                                    renderAnnotationLayer={false} // Performance optimization
+                                    renderTextLayer={true}
+                                    renderAnnotationLayer={true}
                                 />
                             </div>
                         </Document>
@@ -179,4 +181,3 @@ export default function PDFViewer({ document, isOpen, onClose }: PDFViewerProps)
         </Dialog>
     );
 }
-

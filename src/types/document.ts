@@ -27,6 +27,10 @@ export interface Document {
     // Processing status
     status: 'uploading' | 'processing' | 'indexed' | 'error';
     errorMessage?: string;
+
+    // Partial indexing metadata
+    isPartial?: boolean;
+    totalPageCount?: number;
 }
 
 export interface PageText {
@@ -38,4 +42,6 @@ export interface PDFExtractionResult {
     text: string;
     pageCount: number;
     pages: PageText[];
+    totalPageCount?: number;
+    isPartial?: boolean;
 }

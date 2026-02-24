@@ -14,7 +14,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
  */
 export async function extractTextFromPDF(
     file: File,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    maxPages?: number
 ): Promise<PDFExtractionResult> {
     try {
         // Read file as ArrayBuffer
@@ -25,7 +26,10 @@ export async function extractTextFromPDF(
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
 
-        const pageCount = pdf.numPages;
+        const totalPageCount = pdf.numPages;
+        const pageCount = maxPages ? Math.min(maxPages, totalPageCount) : totalPageCount;
+        const isPartial = maxPages !== undefined && totalPageCount > maxPages;
+
         const pages: PageText[] = [];
         let allText = '';
 
@@ -56,6 +60,8 @@ export async function extractTextFromPDF(
             text: allText.trim(),
             pageCount,
             pages,
+            totalPageCount,
+            isPartial
         };
     } catch (error) {
         console.error('Error extracting text from PDF:', error);

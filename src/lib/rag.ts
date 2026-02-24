@@ -13,6 +13,7 @@ export interface RAGSource {
   snippet: string;
   score: number;
   pageNumber?: number; // for documents
+  isPartial?: boolean; // for documents
 }
 
 export interface RAGAnswer {
@@ -294,6 +295,7 @@ export async function askFromNotes(params: {
     snippet: makeSnippet(r.content, keywords, 180),
     score: r.score,
     pageNumber: r.pageNumber,
+    isPartial: r.isPartial,
   }));
 
   const noteMatches = hasNoteMatch ? collectNoteMatches(retrievedAll, keywords) : [];
@@ -301,7 +303,7 @@ export async function askFromNotes(params: {
   const buildInlineCitation = () => {
     if (!hasNoteMatch) return "";
 
-    const sourceScores = new Map<string, { id: string; title: string; score: number; type: 'note' | 'document'; pageNumber?: number }>();
+    const sourceScores = new Map<string, { id: string; title: string; score: number; type: 'note' | 'document'; pageNumber?: number; isPartial?: boolean }>();
     for (const r of retrieved) {
       const prev = sourceScores.get(r.sourceTitle);
       if (!prev || r.score > prev.score) {
@@ -310,7 +312,8 @@ export async function askFromNotes(params: {
           title: r.sourceTitle,
           score: r.score,
           type: r.sourceType,
-          pageNumber: r.pageNumber
+          pageNumber: r.pageNumber,
+          isPartial: r.isPartial
         });
       }
     }
@@ -321,8 +324,9 @@ export async function askFromNotes(params: {
       .map(s => {
         const icon = s.type === 'document' ? '📄' : '📝';
         const pageInfo = s.pageNumber ? ` (p.${s.pageNumber})` : '';
+        const partialInfo = s.isPartial ? ' [Partial]' : '';
         // Markdown link format: [Title](/note/id)
-        return `[${icon} ${s.title}${pageInfo}](/note/${s.id})`;
+        return `[${icon} ${s.title}${pageInfo}${partialInfo}](/note/${s.id})`;
       });
 
     if (citations.length === 0) return "";
@@ -353,7 +357,11 @@ export async function askFromNotes(params: {
   if (hasNoteMatch && context) {
     const system =
       "You are a helpful expert assistant. Answer the user's question concisely based on the notes. " +
-      "Important: Add logically relevant detailed image references using markdown syntax or HTML <img> tags. " +
+      "Important: If a document is marked as [Partial Index], it means only the first few pages (table of contents/introduction) were scanned. " +
+      "If you cannot find the answer in the provided context but recognize the document as a well-known book or resource, " +
+      "FEEL FREE to use your internal general knowledge to give a complete answer. " +
+      "Always mention if you are supplementing the notes with general knowledge for partially indexed books. " +
+      "Add logically relevant detailed image references using markdown syntax or HTML <img> tags. " +
       "PRIORITIZE using real high-quality images from the internet (e.g., Unsplash: ![Alt](https://source.unsplash.com/featured/?<keywords>) or <img src=\"url\" alt=\"text\">). " +
       "Only if a specific real image cannot be found, use pollinations.ai as a fallback. " +
       "Use Mermaid flowcharts for complex processes: ```mermaid\ngraph TD\nA[Start] --> B[End]\n```. " +

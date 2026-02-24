@@ -96,20 +96,20 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
             </Button>
 
             <Dialog open={isOpen} onOpenChange={handleClose}>
-                <DialogContent className="bg-card border-border sm:max-w-md">
+                <DialogContent className="bg-card border-border w-[95vw] sm:max-w-md overflow-hidden">
                     <DialogHeader>
                         <DialogTitle className="text-foreground">Upload Document</DialogTitle>
                     </DialogHeader>
 
                     {!isUploading ? (
-                        <div className="space-y-4">
+                        <div className="space-y-4 w-full overflow-hidden">
                             {/* Drag and drop area */}
                             <div
                                 onDrop={handleDrop}
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
                                 className={cn(
-                                    "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+                                    "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer w-full overflow-hidden",
                                     isDragging
                                         ? "border-primary bg-primary/10"
                                         : "border-border hover:border-primary/50"
@@ -117,7 +117,7 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
                                 onClick={() => document.getElementById('file-input')?.click()}
                             >
                                 <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                <p className="text-sm font-medium mb-1">
+                                <p className="text-sm font-medium mb-1 truncate max-w-full px-4 text-center">
                                     {selectedFile ? selectedFile.name : 'Drop file here or click to browse'}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
@@ -140,17 +140,17 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
 
                             {/* Storage Mode Toggle */}
                             <div className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
-                                <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-2 min-w-0">
                                     {storageMode === 'cloud' ? (
-                                        <Cloud className="h-4 w-4 text-blue-500" />
+                                        <Cloud className="h-4 w-4 text-blue-500 shrink-0" />
                                     ) : (
-                                        <HardDrive className="h-4 w-4 text-gray-500" />
+                                        <HardDrive className="h-4 w-4 text-gray-500 shrink-0" />
                                     )}
-                                    <div className="flex flex-col">
-                                        <Label htmlFor="storage-mode" className="text-sm font-medium cursor-pointer">
+                                    <div className="flex flex-col min-w-0">
+                                        <Label htmlFor="storage-mode" className="text-sm font-medium cursor-pointer truncate">
                                             {storageMode === 'cloud' ? 'Cloud Storage' : 'Local Storage'}
                                         </Label>
-                                        <span className="text-xs text-muted-foreground">
+                                        <span className="text-xs text-muted-foreground truncate">
                                             {storageMode === 'cloud'
                                                 ? 'Synced across devices (Firebase)'
                                                 : 'Private, on this device only'}
@@ -161,11 +161,12 @@ export default function DocumentUpload({ folderId, onUploadComplete }: DocumentU
                                     id="storage-mode"
                                     checked={storageMode === 'cloud'}
                                     onCheckedChange={(checked) => setStorageMode(checked ? 'cloud' : 'local')}
+                                    className="shrink-0 ml-2"
                                 />
                             </div>
 
                             {selectedFile && (
-                                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg w-full overflow-hidden">
                                     <FileText className="h-5 w-5 text-primary shrink-0" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium truncate">{selectedFile.name}</p>

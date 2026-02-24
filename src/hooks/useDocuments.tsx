@@ -196,15 +196,27 @@ export function useDocuments() {
                     message: 'Extracting text...',
                 });
 
+                // Implement Smart Indexing: If > 500KB, only index first 10 pages
+                const isLargeFile = file.size > 500 * 1024;
+                const extractionOptions = isLargeFile && doc.fileType === 'pdf' ? { maxPages: 10 } : undefined;
+
+                if (isLargeFile && doc.fileType === 'pdf') {
+                    toast.info('Large document detected. Indexing first 10 pages + metadata for speed.');
+                }
+
                 const { extraction: extractionResult } = await extractTextFromFile(file, (progress) => {
                     setUploadProgress({
                         stage: 'extracting',
                         progress: 20 + Math.floor(progress * 0.3),
                         message: `Extracting text... ${progress}%`,
                     });
-                });
+                }, extractionOptions);
 
-                await updateDocumentMetadata(user.uid, documentId, { pageCount: extractionResult.pageCount });
+                await updateDocumentMetadata(user.uid, documentId, {
+                    pageCount: extractionResult.pageCount,
+                    isPartial: extractionResult.isPartial,
+                    totalPageCount: extractionResult.totalPageCount
+                });
 
                 setUploadProgress({
                     stage: 'embedding',
@@ -245,6 +257,7 @@ export function useDocuments() {
                         updatedAt: Date.now(),
                         pageNumber: chunk.pageNumber,
                         fileName: doc.fileName,
+                        isPartial: extractionResult.isPartial,
                     });
 
                     const progress = 60 + Math.floor(((i + 1) / chunks.length) * 30);

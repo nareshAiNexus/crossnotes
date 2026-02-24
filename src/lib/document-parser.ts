@@ -130,7 +130,8 @@ async function extractTextFromPlainText(file: File): Promise<PDFExtractionResult
 
 export async function extractTextFromFile(
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  options?: { maxPages?: number }
 ): Promise<{ fileType: SupportedFileType; extraction: PDFExtractionResult }> {
   const fileType = detectFileType(file);
   if (!fileType) {
@@ -138,7 +139,7 @@ export async function extractTextFromFile(
   }
 
   if (fileType === 'pdf') {
-    const extraction = await extractTextFromPDF(file, onProgress);
+    const extraction = await extractTextFromPDF(file, onProgress, options?.maxPages);
     return { fileType, extraction };
   }
 
