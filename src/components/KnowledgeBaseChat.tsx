@@ -301,6 +301,7 @@ export default function KnowledgeBaseChat() {
                               <img
                                 {...props}
                                 loading="lazy"
+                                referrerPolicy="no-referrer"
                                 className="rounded-md border border-border my-2 max-w-full cursor-zoom-in hover:scale-[1.01] transition-transform"
                                 onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
                               />

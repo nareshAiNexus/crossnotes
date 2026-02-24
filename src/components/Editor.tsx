@@ -481,8 +481,9 @@ export default function Editor({
                         <img
                           {...props}
                           loading="lazy"
+                          referrerPolicy="no-referrer"
                           alt={props.alt || 'Image'}
-                          className="rounded-lg shadow-md border border-border mx-auto cursor-zoom-in hover:scale-[1.01] transition-transform"
+                          className="rounded-lg shadow-md border border-border mx-auto cursor-zoom-in hover:scale-[1.01] transition-transform max-w-full"
                           onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
                         />
                       ),
@@ -516,6 +517,7 @@ export default function Editor({
                       <img
                         {...props}
                         loading="lazy"
+                        referrerPolicy="no-referrer"
                         alt={props.alt || 'Image'}
                         className="rounded-lg shadow-md border border-border mx-auto max-w-full cursor-zoom-in hover:scale-[1.01] transition-transform"
                         onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
@@ -551,8 +553,9 @@ export default function Editor({
                         <img
                           {...props}
                           loading="lazy"
+                          referrerPolicy="no-referrer"
                           alt={props.alt || 'Image'}
-                          className="rounded-lg shadow-md border border-border mx-auto cursor-zoom-in hover:scale-[1.01] transition-transform"
+                          className="rounded-lg shadow-md border border-border mx-auto cursor-zoom-in hover:scale-[1.01] transition-transform max-w-full"
                           onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
                         />
                       ),
@@ -585,6 +588,7 @@ export default function Editor({
                       <img
                         {...props}
                         loading="lazy"
+                        referrerPolicy="no-referrer"
                         alt={props.alt || 'Image'}
                         className="rounded-lg shadow-md border border-border mx-auto max-w-full cursor-zoom-in hover:scale-[1.01] transition-transform"
                         onClick={() => setLightbox({ isOpen: true, src: props.src || '', alt: props.alt || '' })}
