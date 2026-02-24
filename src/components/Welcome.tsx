@@ -70,6 +70,18 @@ export default function Welcome({
 
     return (
         <div className="flex-1 flex flex-col bg-background overflow-hidden animate-fade-in">
+            {/* Mobile Header - Menu button only */}
+            <div className="md:hidden flex items-center p-4 border-b border-border shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 h-10 w-10"
+                    onClick={onMenuClick}
+                >
+                    <Menu className="h-5 w-5" />
+                </Button>
+            </div>
+
             {/* Desktop header */}
             <div className="hidden md:flex items-center gap-3 p-4 border-b border-border shrink-0">
                 {onToggleDesktopSidebar && (
