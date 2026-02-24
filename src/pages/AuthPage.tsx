@@ -7,8 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
+interface AuthPageProps {
+  initialMode?: 'login' | 'signup';
+  onBack?: () => void;
+}
+
+export default function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +21,7 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error('Please fill in all fields');
       return;
@@ -37,15 +42,15 @@ export default function AuthPage() {
         toast.success('Account created successfully!');
       }
     } catch (error: any) {
-      const message = error.code === 'auth/user-not-found' 
+      const message = error.code === 'auth/user-not-found'
         ? 'No account found with this email'
         : error.code === 'auth/wrong-password'
-        ? 'Incorrect password'
-        : error.code === 'auth/email-already-in-use'
-        ? 'An account already exists with this email'
-        : error.code === 'auth/invalid-email'
-        ? 'Invalid email address'
-        : 'An error occurred. Please try again.';
+          ? 'Incorrect password'
+          : error.code === 'auth/email-already-in-use'
+            ? 'An account already exists with this email'
+            : error.code === 'auth/invalid-email'
+              ? 'Invalid email address'
+              : 'An error occurred. Please try again.';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -92,8 +97,8 @@ export default function AuthPage() {
             {isLogin ? 'Welcome back' : 'Create account'}
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            {isLogin 
-              ? 'Sign in to access your notes from anywhere' 
+            {isLogin
+              ? 'Sign in to access your notes from anywhere'
               : 'Start your note-taking journey'}
           </CardDescription>
         </CardHeader>
@@ -121,8 +126,8 @@ export default function AuthPage() {
                 className="bg-input border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={loading}
             >
@@ -135,7 +140,7 @@ export default function AuthPage() {
               )}
             </Button>
           </form>
-          <div className="mt-4 text-center">
+          <div className="mt-4 flex flex-col gap-2 text-center">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
@@ -143,6 +148,15 @@ export default function AuthPage() {
             >
               {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </button>
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="text-xs text-muted-foreground/60 hover:text-primary transition-colors mt-2"
+              >
+                ← Back to Home
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>

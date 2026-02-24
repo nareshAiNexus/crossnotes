@@ -5,6 +5,7 @@ import { useNotes } from '@/hooks/useNotes';
 import { useAuth } from '@/hooks/useAuth';
 import { useNoteNavigation } from '@/hooks/useNoteNavigation';
 import AuthPage from './AuthPage';
+import Welcome from '@/components/Welcome';
 import { Loader2 } from 'lucide-react';
 
 const SIDEBAR_WIDTH_KEY = 'crossnotes.sidebar.width';
@@ -17,6 +18,7 @@ export default function Index() {
   const { loading: notesLoading } = useNotes();
   const { selectedNoteId, openNote, viewRequest, highlightRequest } = useNoteNavigation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [showAuthMode, setShowAuthMode] = useState<'login' | 'signup' | null>(null);
 
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(() => {
     try {
@@ -101,8 +103,21 @@ export default function Index() {
     );
   }
 
-  if (!isConfigured || !user) {
+  if (!isConfigured) {
     return <AuthPage />;
+  }
+
+  if (!user && !showAuthMode) {
+    return (
+      <Welcome
+        onMenuClick={() => setIsMobileSidebarOpen(true)}
+        onAuthClick={(mode) => setShowAuthMode(mode)}
+      />
+    );
+  }
+
+  if (!user && showAuthMode) {
+    return <AuthPage initialMode={showAuthMode} onBack={() => setShowAuthMode(null)} />;
   }
 
   if (notesLoading) {

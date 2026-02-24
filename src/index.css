@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -114,7 +114,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Barlow', sans-serif;
   }
 
   /* Markdown editor styling */
@@ -130,15 +130,28 @@
 
   .w-md-editor-text-pre>code,
   .w-md-editor-text-input,
-  .w-md-editor .cm-content,
-  .w-md-editor .cm-line {
-    font-family: 'JetBrains Mono', monospace !important;
+  .w-md-editor .cm-content {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
     font-size: 14px !important;
     line-height: 1.7 !important;
-    padding-left: 24px !important;
-    padding-right: 24px !important;
-    padding-top: 16px !important;
-    padding-bottom: 16px !important;
+  }
+
+  /* Make the CodeMirror scroller fill height and scroll properly */
+  .w-md-editor .cm-scroller {
+    overflow-y: auto !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    padding: 16px 24px 120px 24px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* cm-editor must fill its parent fully */
+  .w-md-editor .cm-editor {
+    height: 100% !important;
+  }
+
+  .w-md-editor .cm-line {
+    font-family: inherit !important;
   }
 
   /* Mobile: slightly tighter padding */
@@ -173,8 +186,8 @@
   .wmde-markdown {
     background-color: transparent !important;
     color: hsl(var(--foreground)) !important;
-    font-family: 'Inter', sans-serif !important;
-    padding: 16px 24px !important;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
+    padding: 16px 24px 120px 24px !important;
     line-height: 1.6 !important;
   }
 
@@ -198,68 +211,57 @@
     box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
   }
 
-  /* GitHub-style colorful headings with better spacing */
+  /* GitHub-style headings with standardized behavior */
+  .wmde-markdown h1,
+  .wmde-markdown h2,
+  .wmde-markdown h3,
+  .wmde-markdown h4,
+  .wmde-markdown h5,
+  .wmde-markdown h6 {
+    color: #e6edf3 !important;
+    font-weight: 600 !important;
+    margin-top: 24px !important;
+    margin-bottom: 16px !important;
+    line-height: 1.25 !important;
+  }
+
   .wmde-markdown h1 {
-    color: #58a6ff !important;
-    border-bottom: 1px solid #30363d !important;
+    font-size: 2em !important;
     padding-bottom: 0.3em !important;
-    font-size: 2.25em !important;
-    font-weight: 700 !important;
-    margin-top: 32px !important;
-    margin-bottom: 20px !important;
-    letter-spacing: -0.02em !important;
+    border-bottom: 1px solid #30363d !important;
   }
 
   .wmde-markdown h2 {
-    color: #7ee787 !important;
-    border-bottom: 1px solid #30363d !important;
+    font-size: 1.5em !important;
     padding-bottom: 0.3em !important;
-    font-size: 1.75em !important;
-    font-weight: 600 !important;
-    margin-top: 28px !important;
-    margin-bottom: 16px !important;
+    border-bottom: 1px solid #30363d !important;
   }
 
   .wmde-markdown h3 {
-    color: #d2a8ff !important;
-    font-size: 1.4em !important;
-    font-weight: 600 !important;
-    margin-top: 24px !important;
-    margin-bottom: 12px !important;
+    font-size: 1.25em !important;
   }
 
   .wmde-markdown h4 {
-    color: #ffa657 !important;
-    font-size: 1.15em !important;
-    font-weight: 600 !important;
-    margin-top: 20px !important;
-    margin-bottom: 12px !important;
+    font-size: 1em !important;
   }
 
   .wmde-markdown h5 {
-    color: #ff7b72 !important;
-    font-size: 1em !important;
-    font-weight: 600 !important;
-    margin-top: 16px !important;
-    margin-bottom: 12px !important;
+    font-size: 0.875em !important;
   }
 
   .wmde-markdown h6 {
-    color: #79c0ff !important;
-    font-size: 0.9em !important;
-    font-weight: 600 !important;
-    margin-top: 16px !important;
-    margin-bottom: 12px !important;
+    font-size: 0.85em !important;
+    color: #8b949e !important;
   }
 
   /* GitHub-style inline code */
   .wmde-markdown code {
     background-color: rgba(110, 118, 129, 0.4) !important;
     color: #e6edf3 !important;
-    font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
     padding: 0.2em 0.45em !important;
     border-radius: 6px !important;
-    font-size: 88% !important;
+    font-size: 85% !important;
   }
 
   /* Knowledge Base highlights (when opening a note from Sources) */
@@ -353,7 +355,7 @@
     background-color: rgba(110, 118, 129, 0.1) !important;
   }
 
-  /* Editor text area padding */
+  /* Editor text area padding - legacy codemirror v5 */
   .w-md-editor-text,
   .w-md-editor-text-input {
     padding: 16px 24px !important;
@@ -387,46 +389,73 @@
   }
 
   .w-md-editor-content {
-    overflow: hidden !important;
-    height: 100% !important;
     flex: 1 !important;
+    min-height: 0 !important;
     display: flex !important;
+    overflow: hidden !important;
   }
 
-  /* Force both editor and preview to have equal heights */
-  .w-md-editor-input,
-  .w-md-editor-preview {
+  /* Editor left pane — no scrolling here, cm-scroller handles it */
+  .w-md-editor-input {
     flex: 1 !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    min-height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
   }
 
-  .w-md-editor-text,
-  .w-md-editor-preview>div {
+  /* Preview right pane */
+  .w-md-editor-preview {
+    flex: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* .w-md-editor-area wraps cm-editor, must stretch to fill */
+  .w-md-editor-area {
+    flex: 1 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  /* cm-editor fills the area, cm-scroller is the ONLY scroll element */
+  .w-md-editor .cm-editor {
+    flex: 1 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* THE ONLY scroll container — CodeMirror's own scroller */
+  .w-md-editor .cm-scroller {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 16px 24px 120px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Preview scrollable div */
+  .w-md-editor-preview>div,
+  .wmde-markdown,
+  .wmde-markdown-var {
     flex: 1 !important;
     overflow-y: auto !important;
     height: 100% !important;
-    max-height: 100% !important;
   }
 
-  .w-md-editor-area {
-    height: 100% !important;
-    display: flex !important;
+  /* Legacy text input fallback (codemirror-v5 mode not used, but keep safe) */
+  .w-md-editor-text {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
 
-  .wmde-markdown,
-  .wmde-markdown-var {
-    overflow-y: auto !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    min-height: 100% !important;
-  }
-
-  /* Ensure text input area matches preview height exactly */
+  /* Ensure text input area is tall enough */
   .w-md-editor-text-pre,
   .w-md-editor-text-input {
     min-height: 100% !important;
@@ -440,6 +469,7 @@
 
   .editor-equal-height .w-md-editor-content {
     flex: 1 1 auto !important;
+    min-height: 0 !important;
     display: flex !important;
     align-items: stretch !important;
   }
@@ -558,29 +588,22 @@ body {
   color: #24292f !important;
 }
 
-/* Light mode colorful headings */
-.light .wmde-markdown h1 {
-  color: #0969da !important;
-}
-
-.light .wmde-markdown h2 {
-  color: #1a7f37 !important;
-}
-
-.light .wmde-markdown h3 {
-  color: #8250df !important;
-}
-
-.light .wmde-markdown h4 {
-  color: #bf8700 !important;
-}
-
+/* Light mode heading colors */
+.light .wmde-markdown h1,
+.light .wmde-markdown h2,
+.light .wmde-markdown h3,
+.light .wmde-markdown h4,
 .light .wmde-markdown h5 {
-  color: #cf222e !important;
+  color: #1f2328 !important;
+}
+
+.light .wmde-markdown h1,
+.light .wmde-markdown h2 {
+  border-bottom-color: #d0d7de !important;
 }
 
 .light .wmde-markdown h6 {
-  color: #0550ae !important;
+  color: #656d76 !important;
 }
 
 .light .wmde-markdown code {

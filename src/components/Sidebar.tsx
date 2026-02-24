@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 
 interface SidebarProps {
   selectedNoteId: string | null;
-  onSelectNote: (noteId: string) => void;
+  onSelectNote: (noteId: string | null) => void;
   isMobileOpen: boolean;
   onMobileClose: () => void;
   desktopWidth: number;
@@ -144,8 +144,14 @@ export default function Sidebar({
       {/* Header */}
       <div className="p-4 border-b border-sidebar-border shrink-0">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+          <div
+            className="flex items-center gap-2 cursor-pointer group/logo transition-all hover:opacity-80 active:scale-95"
+            onClick={() => {
+              onSelectNote(null);
+              onMobileClose();
+            }}
+          >
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center transition-transform group-hover/logo:scale-110">
               <img src="/crossnotes-logo.png" alt="CrossNotes" className="h-8 w-8" />
             </div>
             <span className="font-semibold text-sidebar-foreground">CrossNotes</span>

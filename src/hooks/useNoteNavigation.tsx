@@ -16,7 +16,7 @@ export interface NoteHighlightRequest {
 
 interface NoteNavigationContextValue {
   selectedNoteId: string | null;
-  openNote: (noteId: string, opts?: { view?: NoteView; highlightPhrases?: string[] }) => void;
+  openNote: (noteId: string | null, opts?: { view?: NoteView; highlightPhrases?: string[] }) => void;
   viewRequest: NoteViewRequest | null;
   highlightRequest: NoteHighlightRequest | null;
 }
@@ -29,7 +29,7 @@ export function NoteNavigationProvider({ children }: { children: ReactNode }) {
   const [highlightRequest, setHighlightRequest] = useState<NoteHighlightRequest | null>(null);
 
   const openNote = useCallback(
-    (noteId: string, opts?: { view?: NoteView; highlightPhrases?: string[] }) => {
+    (noteId: string | null, opts?: { view?: NoteView; highlightPhrases?: string[] }) => {
       setSelectedNoteId(noteId);
 
       if (opts?.view) {

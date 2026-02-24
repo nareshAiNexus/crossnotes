@@ -46,6 +46,25 @@ function ThinkingIndicator({ label }: { label?: string }) {
   );
 }
 
+const ANONYMOUS_RESPONSES: Record<string, string> = {
+  "default": "I'm currently in **Guided Tour** mode because you're not logged in. Once you sign in, I can answer questions specifically about your own notes! \n\nTry asking: \n- *What is this app about?*\n- *How does it work?*\n- *How do I create a note?*\n- *How do I index my notes?*",
+  "about": "### What is CrossNotes? 🚀\nCrossNotes is a modern, open-source note-taking app that combines a lightweight writing experience with powerful AI search. It's built for folks who want their notes to be a searchable, queryable 'second brain'.",
+  "use": "### What is the use of the application? 🛠️\nUse CrossNotes to:\n1. **Capture Thoughts**: Standard markdown writing.\n2. **Organize**: Use folders and tags to keep things tidy.\n3. **Query Your Brain**: Use this AI chatbot to find answers *inside* your own content without manual searching.\n4. **Sync**: Access your notes anywhere with Firebase sync.",
+  "works": "### How it works 🧠\n1. **Writing**: You write notes in Markdown.\n2. **Indexing**: The app converts your text into 'embeddings' (mathematical vectors) **locally in your browser**.\n3. **Retrieval**: When you ask a question, the AI finds the most relevant snippets from your notes and summarizes them for you.",
+  "create": "### How to create a note 📝\nClick the **'New Note'** button in the sidebar or the main dashboard. You can start typing immediately! Your notes are automatically saved to your local storage and synced to the cloud if you're signed in.",
+  "index": "### How to index notes 🔍\nOnce you have some notes written, click the **'Index notes'** button at the top of this chat window. The app will process your notes so they can be searched by the AI. \n\n*Note: High-speed indexing happens entirely in your browser using local embeddings!*",
+};
+
+function getAnonymousResponse(query: string): string {
+  const q = query.toLowerCase();
+  if (q.includes("about") || q.includes("project")) return ANONYMOUS_RESPONSES["about"];
+  if (q.includes("use") || q.includes("purpose")) return ANONYMOUS_RESPONSES["use"];
+  if (q.includes("work") || q.includes("how it works")) return ANONYMOUS_RESPONSES["works"];
+  if (q.includes("create") || q.includes("new note")) return ANONYMOUS_RESPONSES["create"];
+  if (q.includes("index") || q.includes("search")) return ANONYMOUS_RESPONSES["index"];
+  return ANONYMOUS_RESPONSES["default"];
+}
+
 export default function KnowledgeBaseChat() {
   const { user } = useAuth();
   const { notes } = useNotes();
@@ -79,18 +98,36 @@ export default function KnowledgeBaseChat() {
   const progressTimerRef = useRef<number | null>(null);
 
   const webgpu = useMemo(() => isWebGPUAvailable(), []);
-  const canAsk = kb.status === "ready" && !!user;
+  const canAsk = (kb.status === "ready" && !!user) || !user; // Allow anonymous tour
 
   // Mobile optimization: never allow local LLM toggle on mobile (too heavy).
   const canUseLocal = webgpu && !isMobile;
 
   const send = async () => {
     const q = question.trim();
-    if (!q || !user) return;
+    if (!q) return;
 
     setQuestion("");
     setMessages((m) => [...m, { role: "user", content: q }]);
     setLoading(true);
+
+    if (!user) {
+      // Rule-based anonymous mode
+      setTimeout(() => {
+        const response = getAnonymousResponse(q);
+        setMessages((m) => [
+          ...m,
+          {
+            role: "assistant",
+            content: response,
+            used: "Guided Tour",
+          },
+        ]);
+        setLoading(false);
+      }, 600);
+      return;
+    }
+
     setLocalProgress(null);
 
     try {
@@ -369,8 +406,8 @@ export default function KnowledgeBaseChat() {
                 <Input
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  placeholder={canAsk ? "Ask a question…" : "Index notes first…"}
-                  disabled={!canAsk || loading}
+                  placeholder={user ? (canAsk ? "Ask a question…" : "Index notes first…") : "Ask about CrossNotes…"}
+                  disabled={loading}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}

@@ -477,6 +477,7 @@ export default function Editor({
                 onChange={handleContentChange}
                 preview="live"
                 height="100%"
+                tabSize={2}
                 visibleDragbar={false}
                 hideToolbar={false}
                 previewOptions={{
@@ -502,7 +503,7 @@ export default function Editor({
                     }
                   }
                 }}
-                className="!border-0 flex-1 w-full [&_.cm-editor]:!pl-12"
+                className="!border-0 flex-1 w-full"
               />
             </div>
           )}
@@ -548,6 +549,7 @@ export default function Editor({
                 onChange={handleContentChange}
                 preview="edit"
                 height="100%"
+                tabSize={2}
                 visibleDragbar={false}
                 hideToolbar={false}
                 previewOptions={{
