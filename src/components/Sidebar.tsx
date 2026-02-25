@@ -1,7 +1,8 @@
 import { useState, type CSSProperties, type PointerEvent } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Plus, MoreHorizontal, Trash2, Edit2, X, LogOut, PanelLeftClose } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Plus, MoreHorizontal, Trash2, Edit2, X, LogOut, PanelLeftClose, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import TemplatePickerDialog from '@/components/TemplatePickerDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +55,7 @@ export default function Sidebar({
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [isNewNoteOpen, setIsNewNoteOpen] = useState(false);
   const [selectedFolderForNote, setSelectedFolderForNote] = useState<string | null>(null);
+  const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -85,6 +87,15 @@ export default function Sidebar({
       setIsNewNoteOpen(false);
       onMobileClose();
       toast.success('Note created');
+    }
+  };
+
+  const handleCreateNoteFromTemplate = async (title: string, content: string) => {
+    const noteId = await createNote(title, null, content);
+    if (noteId) {
+      onSelectNote(noteId);
+      onMobileClose();
+      toast.success('Note created from template');
     }
   };
 
@@ -166,14 +177,15 @@ export default function Sidebar({
       </div>
 
       {/* Actions */}
-      <div className="p-3 border-b border-sidebar-border grid grid-cols-2 gap-2 shrink-0">
-        <Dialog open={isNewNoteOpen} onOpenChange={setIsNewNoteOpen}>
-          <DialogTrigger asChild>
-            <Button variant="secondary" size="sm" className="w-full text-xs">
-              <Plus className="h-3 w-3 mr-1" />
-              Note
-            </Button>
-          </DialogTrigger>
+      <div className="p-3 border-b border-sidebar-border space-y-2 shrink-0">
+        <div className="grid grid-cols-2 gap-2">
+          <Dialog open={isNewNoteOpen} onOpenChange={setIsNewNoteOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary" size="sm" className="w-full text-xs">
+                <Plus className="h-3 w-3 mr-1" />
+                Note
+              </Button>
+            </DialogTrigger>
           <DialogContent className="bg-card border-border">
             <DialogHeader>
               <DialogTitle className="text-foreground">New Note</DialogTitle>
@@ -228,10 +240,19 @@ export default function Sidebar({
             </div>
           </DialogContent>
         </Dialog>
-
-        <div className="col-span-2">
-          <DocumentUpload folderId={null} />
         </div>
+
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full text-xs"
+          onClick={() => setIsTemplatePickerOpen(true)}
+        >
+          <Sparkles className="h-3 w-3 mr-1" />
+          New from Template
+        </Button>
+
+        <DocumentUpload folderId={null} />
       </div>
 
       {/* Content */}
@@ -391,6 +412,12 @@ export default function Sidebar({
           />
         )}
       </aside>
+      
+      <TemplatePickerDialog
+        open={isTemplatePickerOpen}
+        onOpenChange={setIsTemplatePickerOpen}
+        onSelectTemplate={handleCreateNoteFromTemplate}
+      />
     </>
   );
 }
