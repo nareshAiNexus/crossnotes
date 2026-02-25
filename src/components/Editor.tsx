@@ -441,13 +441,13 @@ export default function Editor({
           {desktopView === 'preview' ? (
             // Centered Preview
             <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full">
-              <div className="w-full max-w-3xl px-8 py-6">
-                <article className="mx-auto prose lg:prose-lg max-w-none text-left">
+              <div className="w-full max-w-6xl px-16 py-6">
+                <article className="mx-auto prose lg:prose-xl max-w-none text-left">
                   <MDEditor.Markdown
                     source={autoRenderImages(content)}
                     remarkPlugins={remarkPlugins}
                     rehypePlugins={rehypePlugins}
-                    style={{ whiteSpace: 'pre-wrap', fontVariantLigatures: 'normal' }}
+                    style={{ fontVariantLigatures: 'normal' }}
                     components={{
                       img: (props) => (
                         <img
@@ -520,13 +520,13 @@ export default function Editor({
         <div className="md:hidden flex-1 w-full">
           {mobileView === 'preview' ? (
             <div className="flex-1 overflow-auto flex items-start justify-center bg-background w-full h-full">
-              <div className="w-full max-w-2xl px-5 py-6">
-                <article className="mx-auto prose prose-base sm:prose-lg text-left dark:prose-invert">
+              <div className="w-full px-8 py-6">
+                <article className="mx-auto prose prose-base sm:prose-lg max-w-none text-left dark:prose-invert">
                   <MDEditor.Markdown
                     source={autoRenderImages(content || '*No content yet. Switch to edit mode to start writing.*')}
                     remarkPlugins={remarkPlugins}
                     rehypePlugins={rehypePlugins}
-                    style={{ whiteSpace: 'pre-wrap', fontVariantLigatures: 'normal' }}
+                    style={{ fontVariantLigatures: 'normal' }}
                     components={{
                       img: (props) => (
                         <img

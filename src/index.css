@@ -200,6 +200,16 @@
   }
 
   /* Centered full-preview pane (article.prose wrapper) */
+  article.prose {
+    max-width: 100% !important;
+  }
+
+  article.prose p {
+    margin-top: 0.75em !important;
+    margin-bottom: 0.75em !important;
+    line-height: 1.6 !important;
+  }
+
   article.prose,
   article.prose p,
   article.prose li,
