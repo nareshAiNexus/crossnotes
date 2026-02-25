@@ -114,7 +114,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Barlow', sans-serif;
+    font-family: 'JetBrains Mono';
   }
 
   /* Markdown editor styling */
@@ -131,7 +131,7 @@
   .w-md-editor-text-pre>code,
   .w-md-editor-text-input,
   .w-md-editor .cm-content {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace !important;
     font-size: 14px !important;
     line-height: 1.7 !important;
   }
@@ -150,8 +150,15 @@
     height: 100% !important;
   }
 
-  .w-md-editor .cm-line {
-    font-family: inherit !important;
+  /* All CodeMirror text elements - comprehensive font override */
+  .w-md-editor .cm-editor,
+  .w-md-editor .cm-content,
+  .w-md-editor .cm-line,
+  .w-md-editor .cm-gutters,
+  .w-md-editor .cm-gutter,
+  .w-md-editor-text-pre>code,
+  .w-md-editor-text-input {
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace !important;
   }
 
   /* Mobile: slightly tighter padding */
@@ -186,9 +193,27 @@
   .wmde-markdown {
     background-color: transparent !important;
     color: hsl(var(--foreground)) !important;
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace !important;
+    font-variant-ligatures: normal !important;
     padding: 16px 24px 120px 24px !important;
     line-height: 1.6 !important;
+  }
+
+  /* Centered full-preview pane (article.prose wrapper) */
+  article.prose,
+  article.prose p,
+  article.prose li,
+  article.prose blockquote,
+  article.prose td,
+  article.prose th,
+  article.prose h1,
+  article.prose h2,
+  article.prose h3,
+  article.prose h4,
+  article.prose h5,
+  article.prose h6 {
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace !important;
+    font-variant-ligatures: normal !important;
   }
 
   .wmde-markdown img {
@@ -223,18 +248,19 @@
     margin-top: 24px !important;
     margin-bottom: 16px !important;
     line-height: 1.25 !important;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace !important;
   }
 
   .wmde-markdown h1 {
     font-size: 2em !important;
     padding-bottom: 0.3em !important;
-    border-bottom: 1px solid #30363d !important;
+    border-bottom: none !important;
   }
 
   .wmde-markdown h2 {
     font-size: 1.5em !important;
     padding-bottom: 0.3em !important;
-    border-bottom: 1px solid #30363d !important;
+    border-bottom: none !important;
   }
 
   .wmde-markdown h3 {
@@ -258,7 +284,7 @@
   .wmde-markdown code {
     background-color: rgba(110, 118, 129, 0.4) !important;
     color: #e6edf3 !important;
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace !important;
     padding: 0.2em 0.45em !important;
     border-radius: 6px !important;
     font-size: 85% !important;
@@ -599,7 +625,7 @@ body {
 
 .light .wmde-markdown h1,
 .light .wmde-markdown h2 {
-  border-bottom-color: #d0d7de !important;
+  border-bottom: none !important;
 }
 
 .light .wmde-markdown h6 {

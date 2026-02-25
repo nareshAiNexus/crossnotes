@@ -23,6 +23,7 @@ import Mermaid from '@/components/Mermaid';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import Welcome from '@/components/Welcome';
+import { handleTextareaKeyDown } from '@/lib/editor-utils';
 
 interface EditorProps {
   noteId: string | null;
@@ -446,6 +447,7 @@ export default function Editor({
                     source={autoRenderImages(content)}
                     remarkPlugins={remarkPlugins}
                     rehypePlugins={rehypePlugins}
+                    style={{ whiteSpace: 'pre-wrap', fontVariantLigatures: 'normal' }}
                     components={{
                       img: (props) => (
                         <img
@@ -477,12 +479,17 @@ export default function Editor({
                 onChange={handleContentChange}
                 preview="live"
                 height="100%"
-                tabSize={2}
+                tabSize={4}
+                defaultTabEnable={true}
                 visibleDragbar={false}
                 hideToolbar={false}
+                textareaProps={{
+                  onKeyDown: (e) => handleTextareaKeyDown(e, handleContentChange),
+                }}
                 previewOptions={{
                   remarkPlugins,
                   rehypePlugins,
+                  style: { fontVariantLigatures: 'normal' },
                   components: {
                     img: (props: any) => (
                       <img
@@ -519,6 +526,7 @@ export default function Editor({
                     source={autoRenderImages(content || '*No content yet. Switch to edit mode to start writing.*')}
                     remarkPlugins={remarkPlugins}
                     rehypePlugins={rehypePlugins}
+                    style={{ whiteSpace: 'pre-wrap', fontVariantLigatures: 'normal' }}
                     components={{
                       img: (props) => (
                         <img
@@ -549,12 +557,17 @@ export default function Editor({
                 onChange={handleContentChange}
                 preview="edit"
                 height="100%"
-                tabSize={2}
+                tabSize={4}
+                defaultTabEnable={true}
                 visibleDragbar={false}
                 hideToolbar={false}
+                textareaProps={{
+                  onKeyDown: (e) => handleTextareaKeyDown(e, handleContentChange),
+                }}
                 previewOptions={{
                   remarkPlugins,
                   rehypePlugins,
+                  style: { fontVariantLigatures: 'normal' },
                   components: {
                     img: (props: any) => (
                       <img
