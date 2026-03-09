@@ -294,7 +294,7 @@
   .wmde-markdown code {
     background-color: rgba(110, 118, 129, 0.4) !important;
     color: #e6edf3 !important;
-    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace !important;
+    font-family: JetBrains Mono, ui-monospace, Menlo, Consolas, monospace !important;
     padding: 0.2em 0.45em !important;
     border-radius: 6px !important;
     font-size: 85% !important;
