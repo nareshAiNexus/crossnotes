@@ -21,7 +21,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 export default function Index() {
   const { user, loading: authLoading, isConfigured } = useAuth();
-  const { notes, folders, createNote, createFolder, loading: notesLoading } = useNotes();
+  const { notes, createNote, createFolder, loading: notesLoading } = useNotes();
   const { selectedNoteId, openNote, viewRequest, highlightRequest } = useNoteNavigation();
   const { theme, toggleTheme } = useTheme();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -226,7 +226,7 @@ export default function Index() {
     });
 
     return cmds;
-  }, [isDesktopSidebarHidden, theme, notes, folders, createNote, createFolder, toggleDesktopSidebar, toggleTheme, openNote]);
+  }, [isDesktopSidebarHidden, theme, notes, createNote, createFolder, toggleDesktopSidebar, toggleTheme, openNote]);
 
   // Keyboard Shortcuts
   useKeyboardShortcuts(
