@@ -12,6 +12,7 @@ import Welcome from '@/components/Welcome';
 import { Loader2, FileText, Folder, MessageCircle, Moon, Sun, PanelLeftClose, PanelLeftOpen, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { NOTE_TEMPLATES, formatTemplateContent, formatTemplateTitle } from '@/lib/templates';
+import KnowledgeGraphDialog from '@/components/KnowledgeGraphDialog';
 
 const SIDEBAR_WIDTH_KEY = 'crossnotes.sidebar.width';
 const SIDEBAR_HIDDEN_KEY = 'crossnotes.sidebar.hidden';
@@ -26,6 +27,7 @@ export default function Index() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showAuthMode, setShowAuthMode] = useState<'login' | 'signup' | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
 
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(() => {
     try {
@@ -128,6 +130,16 @@ export default function Index() {
         const kbButton = document.querySelector('[title="Knowledge Base Chat"]') as HTMLButtonElement;
         if (kbButton) kbButton.click();
       },
+      group: 'Navigation',
+    });
+
+    cmds.push({
+      id: 'open-knowledge-graph',
+      label: 'Open Knowledge Graph',
+      description: 'Visualize relationships between your notes',
+      icon: Sparkles,
+      keywords: ['graph', 'knowledge', 'map', 'connections', 'relationships'],
+      action: () => setKnowledgeGraphOpen(true),
       group: 'Navigation',
     });
 
@@ -292,6 +304,7 @@ export default function Index() {
           isDesktopHidden={isDesktopSidebarHidden}
           onToggleDesktopHidden={toggleDesktopSidebar}
           onResizeStart={handleResizeStart}
+          onOpenKnowledgeGraph={() => setKnowledgeGraphOpen(true)}
         />
         <Editor
           noteId={selectedNoteId}
@@ -311,6 +324,15 @@ export default function Index() {
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
         commands={commands}
+      />
+      <KnowledgeGraphDialog
+        open={knowledgeGraphOpen}
+        onOpenChange={setKnowledgeGraphOpen}
+        notes={notes}
+        onOpenNote={(noteId) => {
+          openNote(noteId, { view: 'preview' });
+          setIsMobileSidebarOpen(false);
+        }}
       />
     </>
   );
