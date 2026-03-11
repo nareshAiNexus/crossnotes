@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type PointerEvent } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileText, Plus, MoreHorizontal, Trash2, Edit2, X, LogOut, PanelLeftClose, Sparkles } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FileText, Plus, MoreHorizontal, Trash2, Edit2, X, LogOut, PanelLeftClose, Sparkles, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import TemplatePickerDialog from '@/components/TemplatePickerDialog';
@@ -33,6 +33,7 @@ interface SidebarProps {
   isDesktopHidden: boolean;
   onToggleDesktopHidden: () => void;
   onResizeStart: (e: PointerEvent<HTMLDivElement>) => void;
+  onOpenKnowledgeGraph: () => void;
 }
 
 export default function Sidebar({
@@ -44,6 +45,7 @@ export default function Sidebar({
   isDesktopHidden,
   onToggleDesktopHidden,
   onResizeStart,
+  onOpenKnowledgeGraph,
 }: SidebarProps) {
   const { notes, folders, createNote, createFolder, deleteNote, deleteFolder, updateFolder } = useNotes();
   const { user, logout } = useAuth();
@@ -250,6 +252,16 @@ export default function Sidebar({
         >
           <Sparkles className="h-3 w-3 mr-1" />
           New from Template
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs"
+          onClick={onOpenKnowledgeGraph}
+        >
+          <Network className="h-3 w-3 mr-1" />
+          Knowledge Graph
         </Button>
 
         <DocumentUpload folderId={null} />
